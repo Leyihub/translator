@@ -401,26 +401,19 @@
       height: 20px;
     }
 
-    #live-lang-row {
-      display: flex;
-      gap: 14px;
-      margin-top: 24px;
-      align-items: center;
-    }
-
-    .live-lang-chip {
-      padding: 5px 16px;
-      border-radius: 20px;
+    #live-direction {
+      margin-top: 20px;
       font-size: 13px;
-      font-weight: 500;
-      border: 1.5px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.45);
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--live-green);
+      height: 20px;
+      opacity: 0;
+      transition: opacity .3s;
     }
 
-    .live-lang-chip.active {
-      border-color: var(--live-green);
-      color: var(--live-green);
-      background: rgba(0, 196, 140, 0.1);
+    #live-direction.visible {
+      opacity: 1;
     }
 
     /* INPUT AREA */
@@ -504,21 +497,46 @@
       display: none;
     }
 
-    #mic-btn.recording {
-      background: #fff0f0;
-      border-color: var(--red);
+    /* 双模式 input bar */
+    .input-bar {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
     }
 
-    #mic-btn.recording svg {
-      stroke: var(--red);
+    #ptt-btn {
+      flex: 1;
+      height: 42px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 21px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: background .15s, border-color .15s, color .15s;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      padding: 0 16px;
     }
 
-    #live-btn.send-mode {
+    #ptt-btn.recording {
+      background: #e8f0fe;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    #right-btn.send-mode {
       background: var(--primary);
       border-color: var(--primary);
     }
 
-    #live-btn.send-mode svg {
+    #right-btn.send-mode svg {
       stroke: white;
     }
 
@@ -626,35 +644,59 @@
 
   <!-- INPUT AREA -->
   <div id="input-area">
-    <div id="input-box" contenteditable="true" role="textbox" aria-label="输入文字翻译" data-placeholder="输入文字翻译…"
-      onkeydown="handleKey(event)" oninput="onInputChange(this)"></div>
-    <button class="action-btn" id="mic-btn" onclick="micOrSend()" title="语音输入">
-      <span class="btn-icon" id="mic-icon-wrap">
+    <!-- 语音模式（默认） -->
+    <div class="input-bar" id="voice-bar">
+      <button id="ptt-btn"
+        ontouchstart="pttStart(event)" ontouchend="pttEnd(event)" ontouchcancel="pttCancel(event)"
+        onmousedown="pttStart(event)" onmouseup="pttEnd(event)" onmouseleave="pttEnd(event)">按住说话</button>
+      <button class="action-btn" onclick="switchToText()" title="文字输入">
         <svg viewBox="0 0 24 24">
-          <rect x="9" y="2" width="6" height="12" rx="3" />
-          <path d="M5 10a7 7 0 0 0 14 0" />
-          <line x1="12" y1="19" x2="12" y2="23" />
-          <line x1="8" y1="23" x2="16" y2="23" />
+          <rect x="2" y="4" width="20" height="13" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+          <line x1="7" y1="9" x2="17" y2="9"/>
+          <line x1="7" y1="13" x2="13" y2="13"/>
         </svg>
-      </span>
-    </button>
-    <button class="action-btn" id="live-btn" onclick="liveOrSend()" title="Live实时对话 / 发送">
-      <span class="btn-icon" id="live-icon-wrap">
+      </button>
+      <button class="action-btn" onclick="openLive()" title="Live实时对话">
         <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M6.3 6.3a8 8 0 0 0 0 11.4" />
-          <path d="M17.7 6.3a8 8 0 0 1 0 11.4" />
-          <path d="M3.5 3.5a14 14 0 0 0 0 17" />
-          <path d="M20.5 3.5a14 14 0 0 1 0 17" />
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M6.3 6.3a8 8 0 0 0 0 11.4"/>
+          <path d="M17.7 6.3a8 8 0 0 1 0 11.4"/>
+          <path d="M3.5 3.5a14 14 0 0 0 0 17"/>
+          <path d="M20.5 3.5a14 14 0 0 1 0 17"/>
         </svg>
-      </span>
-      <span class="btn-icon hidden" id="send-icon-wrap">
+      </button>
+    </div>
+    <!-- 文字模式 -->
+    <div class="input-bar" id="text-bar" style="display:none">
+      <button class="action-btn" onclick="switchToVoice()" title="语音输入">
         <svg viewBox="0 0 24 24">
-          <line x1="22" y1="2" x2="11" y2="13" />
-          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
         </svg>
-      </span>
-    </button>
+      </button>
+      <div id="input-box" contenteditable="true" role="textbox" aria-label="输入文字翻译" data-placeholder="输入文字翻译…"
+        onkeydown="handleKey(event)" oninput="onInputChange(this)"></div>
+      <button class="action-btn" id="right-btn" onclick="rightBtnClick()" title="发送 / Live">
+        <span class="btn-icon" id="live-icon-wrap">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M6.3 6.3a8 8 0 0 0 0 11.4"/>
+            <path d="M17.7 6.3a8 8 0 0 1 0 11.4"/>
+            <path d="M3.5 3.5a14 14 0 0 0 0 17"/>
+            <path d="M20.5 3.5a14 14 0 0 1 0 17"/>
+          </svg>
+        </span>
+        <span class="btn-icon hidden" id="send-icon-wrap">
+          <svg viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </span>
+      </button>
+    </div>
   </div>
 
   <!-- LIVE OVERLAY -->
@@ -665,7 +707,7 @@
         <line x1="6" y1="6" x2="18" y2="18" />
       </svg>
     </button>
-    <div id="live-title">LIVE 实时翻译</div>
+    <div id="live-title">LIVE 双语实时翻译</div>
     <div id="live-status">准备就绪</div>
     <div id="live-translation">点击下方球体开始对话</div>
     <div id="live-orb-wrap">
@@ -688,11 +730,7 @@
       <div class="wave-bar" style="height:5px"></div>
     </div>
     <div id="live-state-label">点击麦克风开始</div>
-    <div id="live-lang-row">
-      <div class="live-lang-chip" id="chip-zh">中文</div>
-      <div style="color:rgba(255,255,255,0.3);font-size:16px">⇄</div>
-      <div class="live-lang-chip" id="chip-id">Indonesia</div>
-    </div>
+    <div id="live-direction"></div>
   </div>
 
   <script>
@@ -700,10 +738,39 @@
     const API_URL = 'https://ark.cn-beijing.volces.com/api/v3/responses';
     const MODEL = 'doubao-seed-translation-250915';
 
+    // ── MIC HELPERS ──
+    // 安卓 Chrome 必须先调用 getUserMedia 触发权限弹窗，否则 SpeechRecognition 静默失败
+    async function ensureMicPermission() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // 老设备不支持则跳过
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop()); // 立即释放，只需要权限
+        return true;
+      } catch (e) {
+        const denied = e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError';
+        alert(denied
+          ? '麦克风权限被拒绝，请在浏览器地址栏点击锁形图标，手动开启麦克风权限后刷新页面'
+          : '无法访问麦克风：' + e.message);
+        return false;
+      }
+    }
+
+    // 将 SpeechRecognition 错误码转换为用户可读的提示
+    function showSpeechError(code) {
+      const map = {
+        'network': '语音识别网络错误\n\n安卓 Chrome 的语音识别需要连接谷歌服务器。\n如在中国大陆使用，请开启 VPN 后重试，或改用文字输入。',
+        'not-allowed': '麦克风权限被拒绝，请在浏览器设置中开启麦克风权限后刷新页面',
+        'audio-capture': '未检测到麦克风，请检查设备硬件或浏览器权限',
+        'service-not-allowed': '此浏览器不允许使用语音识别，请尝试 Chrome 或 Samsung Internet',
+        'aborted': null,
+        'no-speech': null,
+      };
+      const msg = map[code];
+      if (msg) alert(msg);
+    }
+
     let apiKey = '';
     let ttsOn = true;
-    let recog = null;
-    let micActive = false;
     let liveRecog = null;
     let liveActive = false;
     let waveTick;
@@ -769,13 +836,23 @@
     function setMorphState(isTyping) {
       document.getElementById('live-icon-wrap').classList.toggle('hidden', isTyping);
       document.getElementById('send-icon-wrap').classList.toggle('hidden', !isTyping);
-      document.getElementById('live-btn').classList.toggle('send-mode', isTyping);
+      document.getElementById('right-btn').classList.toggle('send-mode', isTyping);
     }
     function handleKey(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     }
-    function micOrSend() { toggleVoiceInput(); }
-    function liveOrSend() { if (typing) { sendMessage(); } else { openLive(); } }
+    function rightBtnClick() { if (typing) { sendMessage(); } else { openLive(); } }
+
+    // ── MODE SWITCH ──
+    function switchToVoice() {
+      document.getElementById('voice-bar').style.display = 'flex';
+      document.getElementById('text-bar').style.display = 'none';
+    }
+    function switchToText() {
+      document.getElementById('voice-bar').style.display = 'none';
+      document.getElementById('text-bar').style.display = 'flex';
+      setTimeout(() => document.getElementById('input-box').focus(), 50);
+    }
 
     // ── BUBBLE ──
     function addBubble(text, dir, streaming = false) {
@@ -898,27 +975,61 @@
       } catch (e) { return '网络错误'; }
     }
 
-    // ── VOICE INPUT ──
-    function toggleVoiceInput() {
+    // ── PTT 按住说话 ──
+    let pttRecog = null;
+    let pttActive = false;
+    let pttShouldSend = false;
+    let pttFinalText = '';
+
+    function pttStart(e) {
+      e.preventDefault();
+      if (pttActive) return;
       if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        alert('请使用 Chrome 或 Safari 以支持语音识别'); return;
+        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
       }
-      const btn = document.getElementById('mic-btn');
-      if (micActive) { recog && recog.stop(); micActive = false; btn.classList.remove('recording'); return; }
+      pttActive = true; pttShouldSend = false; pttFinalText = '';
+      const btn = document.getElementById('ptt-btn');
+      btn.textContent = '松开 发送'; btn.classList.add('recording');
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recog = new SR();
-      recog.lang = 'zh-CN'; recog.interimResults = true; recog.continuous = false;
-      const box = document.getElementById('input-box');
-      recog.onresult = e => {
-        let t = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-        box.innerText = t;
-        const hasText = t.trim().length > 0;
-        if (hasText !== typing) { typing = hasText; setMorphState(typing); }
+      pttRecog = new SR();
+      pttRecog.lang = 'zh-CN'; pttRecog.interimResults = true; pttRecog.continuous = true;
+      pttRecog.onresult = ev => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) pttFinalText += ev.results[i][0].transcript;
+          else interim += ev.results[i][0].transcript;
+        }
+        const show = pttFinalText || interim;
+        if (show) btn.textContent = show;
       };
-      recog.onend = () => { micActive = false; btn.classList.remove('recording'); };
-      recog.onerror = () => { micActive = false; btn.classList.remove('recording'); };
-      recog.start(); micActive = true; btn.classList.add('recording');
+      pttRecog.onend = () => {
+        const text = pttFinalText.trim();
+        pttActive = false; resetPttBtn();
+        if (pttShouldSend && text) { addBubble(text, 'out'); streamTranslation(text); }
+      };
+      pttRecog.onerror = ev => {
+        pttActive = false; pttShouldSend = false; resetPttBtn(); showSpeechError(ev.error);
+      };
+      pttRecog.start();
+    }
+
+    function pttEnd(e) {
+      e.preventDefault();
+      if (!pttActive) return;
+      pttShouldSend = true;
+      if (pttRecog) { try { pttRecog.stop(); } catch (err) {} }
+    }
+
+    function pttCancel(e) {
+      if (!pttActive) return;
+      pttShouldSend = false; pttActive = false;
+      if (pttRecog) { try { pttRecog.abort(); } catch (err) {} }
+      resetPttBtn();
+    }
+
+    function resetPttBtn() {
+      const btn = document.getElementById('ptt-btn');
+      if (btn) { btn.textContent = '按住说话'; btn.classList.remove('recording'); }
     }
 
     // ── LIVE MODE ──
@@ -959,32 +1070,40 @@
       if (s === 'thinking') { lbl.textContent = '翻译中…'; sts.textContent = '处理中'; }
       if (s === 'speaking') { orb.classList.add('speaking'); lbl.textContent = '正在播报…'; sts.textContent = '朗读中'; }
     }
-    function toggleLiveListen() {
+    async function toggleLiveListen() {
       if (liveActive) {
         liveActive = false;
         if (liveRecog) { try { liveRecog.stop(); } catch (e) { } }
         window.speechSynthesis && window.speechSynthesis.cancel();
         setLiveState('idle');
-        document.getElementById('chip-zh').classList.remove('active');
-        document.getElementById('chip-id').classList.remove('active');
+        setLiveDirection('');
         document.getElementById('live-translation').textContent = '点击球体重新开始';
         return;
       }
       if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        alert('请使用 Chrome 或 Safari 以支持语音识别'); return;
+        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
       }
+      if (!await ensureMicPermission()) return;
       liveActive = true;
+      // 从中文开始尝试；无声音时会自动交替切换
       startLiveRound('zh-CN');
     }
+
+    function setLiveDirection(text) {
+      const el = document.getElementById('live-direction');
+      el.textContent = text;
+      el.classList.toggle('visible', !!text);
+    }
+
+    // lang 是本轮的识别语言；无声音时交替尝试另一语言
     function startLiveRound(lang) {
       if (!liveActive) return;
-      const isZh = lang === 'zh-CN';
-      document.getElementById('chip-zh').classList.toggle('active', isZh);
-      document.getElementById('chip-id').classList.toggle('active', !isZh);
+      const otherLang = lang === 'zh-CN' ? 'id-ID' : 'zh-CN';
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       liveRecog = new SR();
       liveRecog.lang = lang; liveRecog.interimResults = true; liveRecog.continuous = false;
       setLiveState('listening');
+      setLiveDirection('');
       let finalText = '';
       liveRecog.onresult = e => {
         let interim = '', final = '';
@@ -997,7 +1116,13 @@
       };
       liveRecog.onend = async () => {
         if (!liveActive) return;
-        if (!finalText) { setTimeout(() => startLiveRound(lang), 200); return; }
+        // 本轮没识别到内容 → 切换到另一语言重试
+        if (!finalText) { setTimeout(() => startLiveRound(otherLang), 200); return; }
+        // 根据实际识别内容判断语种，决定翻译方向
+        const srcIsZh = detectLang(finalText) === 'zh';
+        const ttsLang = srcIsZh ? 'id-ID' : 'zh-CN';
+        const nextLang = ttsLang; // 翻译完后监听对方语言
+        setLiveDirection(srcIsZh ? '中文 → Indonesia' : 'Indonesia → 中文');
         setLiveState('thinking');
         document.getElementById('live-translation').textContent = '翻译中…';
         const translation = await translateOnce(finalText);
@@ -1006,13 +1131,17 @@
         addBubble(translation, 'in');
         setLiveState('speaking');
         const u = new SpeechSynthesisUtterance(translation);
-        u.lang = isZh ? 'id-ID' : 'zh-CN'; u.rate = 1.0;
-        u.onend = () => { if (!liveActive) return; setTimeout(() => startLiveRound(isZh ? 'id-ID' : 'zh-CN'), 500); };
+        u.lang = ttsLang; u.rate = 1.0;
+        u.onend = () => { if (!liveActive) return; setTimeout(() => startLiveRound(nextLang), 500); };
         window.speechSynthesis.speak(u);
       };
       liveRecog.onerror = e => {
-        if (e.error === 'no-speech' && liveActive) { setTimeout(() => startLiveRound(lang), 300); return; }
-        if (liveActive) setLiveState('idle');
+        if (e.error === 'no-speech' && liveActive) {
+          // 无声音 → 换语言重试，保持双语轮询
+          setTimeout(() => startLiveRound(otherLang), 300); return;
+        }
+        showSpeechError(e.error);
+        if (liveActive) { liveActive = false; setLiveState('idle'); }
       };
       liveRecog.start();
     }
