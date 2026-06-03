@@ -923,6 +923,17 @@
     }
 
     // ── TTS ──
+    // 移动端 speechSynthesis 需在真实手势内先调用一次才能解锁，后续异步才能正常朗读
+    let speechUnlocked = false;
+    function unlockSpeech() {
+      if (speechUnlocked || !('speechSynthesis' in window)) return;
+      speechUnlocked = true;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+    document.addEventListener('touchstart', unlockSpeech, { once: true, passive: true });
+    document.addEventListener('mousedown', unlockSpeech, { once: true });
+
     function toggleTTS() {
       ttsOn = !ttsOn;
       document.getElementById('tts-toggle').classList.toggle('on', ttsOn);
@@ -978,59 +989,52 @@
       const meta = document.createElement('div');
       meta.className = 'bubble-meta';
       if (dir === 'in') {
-        // 朗读
+        // ▶ 朗读
         const ttsBtn = document.createElement('div');
         ttsBtn.className = 'tts-play'; ttsBtn.title = '朗读';
         ttsBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
         ttsBtn.onclick = () => speak(b.textContent);
         meta.appendChild(ttsBtn);
+
+        // ⧉ 复制（纯图标）
+        const copyBtn = document.createElement('div');
+        copyBtn.className = 'tts-play'; copyBtn.title = '复制';
+        const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        const doneIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        copyBtn.innerHTML = copyIcon;
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(b.textContent).then(() => {
+            copyBtn.innerHTML = doneIcon;
+            copyBtn.style.borderColor = 'var(--live-green)';
+            setTimeout(() => { copyBtn.innerHTML = copyIcon; copyBtn.style.borderColor = ''; }, 2000);
+          }).catch(() => alert('复制失败，请长按文字手动复制'));
+        };
+        meta.appendChild(copyBtn);
+
+        // ⇄ 回译（纯图标）
+        const verifyBtn = document.createElement('div');
+        verifyBtn.className = 'tts-play'; verifyBtn.title = '回译核对';
+        const verifyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>`;
+        verifyBtn.innerHTML = verifyIcon;
+        let backRow = null;
+        verifyBtn.onclick = async () => {
+          if (backRow) { backRow.remove(); backRow = null; verifyBtn.style.borderColor = ''; return; }
+          verifyBtn.style.opacity = '0.5';
+          const result = await translateOnce(b.textContent);
+          verifyBtn.style.opacity = '';
+          verifyBtn.style.borderColor = 'var(--primary)';
+          backRow = document.createElement('div');
+          backRow.className = 'back-trans-row';
+          backRow.textContent = result;
+          wrap.appendChild(backRow);
+          chat.scrollTop = chat.scrollHeight;
+        };
+        meta.appendChild(verifyBtn);
       }
       const t = document.createElement('span');
       t.textContent = new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' });
       meta.appendChild(t);
       wrap.appendChild(meta);
-
-      // 翻译气泡下方：复制 + 回译 按钮
-      if (dir === 'in') {
-        const actions = document.createElement('div');
-        actions.className = 'bubble-actions';
-
-        // 复制按钮
-        const copyBtn = document.createElement('div');
-        copyBtn.className = 'bub-btn';
-        copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>复制`;
-        copyBtn.onclick = () => {
-          navigator.clipboard.writeText(b.textContent).then(() => {
-            copyBtn.classList.add('copied');
-            copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>已复制`;
-            setTimeout(() => {
-              copyBtn.classList.remove('copied');
-              copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>复制`;
-            }, 2000);
-          }).catch(() => alert('复制失败，请长按文字手动复制'));
-        };
-        actions.appendChild(copyBtn);
-
-        // 回译验证按钮
-        const verifyBtn = document.createElement('div');
-        verifyBtn.className = 'bub-btn';
-        verifyBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>回译`;
-        let backRow = null;
-        verifyBtn.onclick = async () => {
-          if (backRow) { backRow.remove(); backRow = null; return; }
-          verifyBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>翻译中…`;
-          const result = await translateOnce(b.textContent);
-          verifyBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>回译`;
-          backRow = document.createElement('div');
-          backRow.className = 'back-trans-row';
-          backRow.textContent = '↩ ' + result;
-          wrap.appendChild(backRow);
-          chat.scrollTop = chat.scrollHeight;
-        };
-        actions.appendChild(verifyBtn);
-
-        wrap.appendChild(actions);
-      }
 
       chat.appendChild(wrap);
       chat.scrollTop = chat.scrollHeight;
