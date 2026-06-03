@@ -22,7 +22,7 @@
       --live-green: #00c48c;
       --red: #ff4d4f;
       --header-h: 56px;
-      --input-h: 64px;
+      --input-h: 96px;
       --radius: 18px;
     }
 
@@ -498,35 +498,35 @@
     }
 
     /* 双模式 input bar */
+    #input-area { padding: 0 12px; }
+
     .input-bar {
       display: flex;
       align-items: center;
-      width: 100%;
-      gap: 8px;
+      flex: 1;
+      gap: 10px;
     }
 
     #ptt-btn {
       flex: 1;
-      height: 42px;
+      height: 64px;
       background: var(--bg);
       border: 1.5px solid var(--border);
-      border-radius: 21px;
-      font-size: 16px;
-      font-weight: 500;
+      border-radius: 32px;
+      font-size: 18px;
+      font-weight: 600;
       color: var(--text-main);
       cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
       transition: background .15s, border-color .15s, color .15s;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      padding: 0 16px;
+      padding: 0 20px;
     }
 
+    #ptt-btn:active,
     #ptt-btn.recording {
-      background: #e8f0fe;
+      background: var(--primary-light);
       border-color: var(--primary);
       color: var(--primary);
     }
@@ -536,8 +536,110 @@
       border-color: var(--primary);
     }
 
-    #right-btn.send-mode svg {
-      stroke: white;
+    #right-btn.send-mode svg { stroke: white; }
+
+    /* 浮动识别气泡（按住说话时显示在按钮上方） */
+    #ptt-float {
+      display: none;
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: calc(var(--input-h) + 14px);
+      background: white;
+      border-radius: 20px;
+      padding: 14px 18px 16px;
+      box-shadow: 0 6px 28px rgba(26,110,245,0.18), 0 1px 6px rgba(0,0,0,0.08);
+      border: 1.5px solid rgba(26,110,245,0.3);
+      z-index: 150;
+      animation: floatIn .18s ease;
+    }
+    #ptt-float.active { display: block; }
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #ptt-float-label {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #ptt-float-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1s infinite;
+    }
+    #ptt-float-text {
+      font-size: 17px;
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 26px;
+      word-break: break-word;
+    }
+    #ptt-float-text:empty::before {
+      content: '正在聆听…';
+      color: var(--text-muted);
+    }
+    /* 气泡下方三角箭头 */
+    #ptt-float::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 40px;
+      border: 9px solid transparent;
+      border-top-color: white;
+      border-bottom: 0;
+      filter: drop-shadow(0 2px 1px rgba(26,110,245,0.1));
+    }
+
+    /* 翻译气泡下的操作按钮 */
+    .bubble-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .bub-btn {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .bub-btn svg {
+      width: 11px; height: 11px;
+      stroke: var(--text-muted);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .bub-btn:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+    .bub-btn:active svg { stroke: var(--primary); }
+    .bub-btn.copied { background: #e6fff5; border-color: var(--live-green); color: var(--live-green); }
+    .back-trans-row {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 7px 10px;
+      margin-top: 6px;
+      line-height: 1.5;
+      max-width: 240px;
+      border-left: 2px solid var(--border);
     }
 
     /* API key modal */
@@ -642,13 +744,21 @@
     <div class="hint-msg">🌐 自动识别中文↔印尼语，发送后自动朗读译文</div>
   </div>
 
+  <!-- PTT 浮动识别气泡 -->
+  <div id="ptt-float">
+    <div id="ptt-float-label">
+      <span id="ptt-float-dot"></span>正在识别
+    </div>
+    <div id="ptt-float-text"></div>
+  </div>
+
   <!-- INPUT AREA -->
   <div id="input-area">
     <!-- 语音模式（默认） -->
     <div class="input-bar" id="voice-bar">
       <button id="ptt-btn"
-        ontouchstart="pttStart(event)" ontouchend="pttEnd(event)" ontouchcancel="pttCancel(event)"
-        onmousedown="pttStart(event)" onmouseup="pttEnd(event)" onmouseleave="pttEnd(event)">按住说话</button>
+        ontouchstart="pttStart(event)" ontouchcancel="pttCancel()"
+        onmousedown="pttStart(event)">按住说话</button>
       <button class="action-btn" onclick="switchToText()" title="文字输入">
         <svg viewBox="0 0 24 24">
           <rect x="2" y="4" width="20" height="13" rx="2"/>
@@ -813,6 +923,17 @@
     }
 
     // ── TTS ──
+    // 移动端 speechSynthesis 需在真实手势内先调用一次才能解锁，后续异步才能正常朗读
+    let speechUnlocked = false;
+    function unlockSpeech() {
+      if (speechUnlocked || !('speechSynthesis' in window)) return;
+      speechUnlocked = true;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+    document.addEventListener('touchstart', unlockSpeech, { once: true, passive: true });
+    document.addEventListener('mousedown', unlockSpeech, { once: true });
+
     function toggleTTS() {
       ttsOn = !ttsOn;
       document.getElementById('tts-toggle').classList.toggle('on', ttsOn);
@@ -864,19 +985,57 @@
       if (streaming) { b.innerHTML = '<span class="cursor-blink"></span>'; }
       else { b.textContent = text; }
       wrap.appendChild(b);
+
       const meta = document.createElement('div');
       meta.className = 'bubble-meta';
       if (dir === 'in') {
-        const btn = document.createElement('div');
-        btn.className = 'tts-play'; btn.title = '朗读';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-        btn.onclick = () => speak(b.textContent);
-        meta.appendChild(btn);
+        // ▶ 朗读
+        const ttsBtn = document.createElement('div');
+        ttsBtn.className = 'tts-play'; ttsBtn.title = '朗读';
+        ttsBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+        ttsBtn.onclick = () => speak(b.textContent);
+        meta.appendChild(ttsBtn);
+
+        // ⧉ 复制（纯图标）
+        const copyBtn = document.createElement('div');
+        copyBtn.className = 'tts-play'; copyBtn.title = '复制';
+        const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        const doneIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        copyBtn.innerHTML = copyIcon;
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(b.textContent).then(() => {
+            copyBtn.innerHTML = doneIcon;
+            copyBtn.style.borderColor = 'var(--live-green)';
+            setTimeout(() => { copyBtn.innerHTML = copyIcon; copyBtn.style.borderColor = ''; }, 2000);
+          }).catch(() => alert('复制失败，请长按文字手动复制'));
+        };
+        meta.appendChild(copyBtn);
+
+        // ⇄ 回译（纯图标）
+        const verifyBtn = document.createElement('div');
+        verifyBtn.className = 'tts-play'; verifyBtn.title = '回译核对';
+        const verifyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>`;
+        verifyBtn.innerHTML = verifyIcon;
+        let backRow = null;
+        verifyBtn.onclick = async () => {
+          if (backRow) { backRow.remove(); backRow = null; verifyBtn.style.borderColor = ''; return; }
+          verifyBtn.style.opacity = '0.5';
+          const result = await translateOnce(b.textContent);
+          verifyBtn.style.opacity = '';
+          verifyBtn.style.borderColor = 'var(--primary)';
+          backRow = document.createElement('div');
+          backRow.className = 'back-trans-row';
+          backRow.textContent = result;
+          wrap.appendChild(backRow);
+          chat.scrollTop = chat.scrollHeight;
+        };
+        meta.appendChild(verifyBtn);
       }
       const t = document.createElement('span');
       t.textContent = new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' });
       meta.appendChild(t);
       wrap.appendChild(meta);
+
       chat.appendChild(wrap);
       chat.scrollTop = chat.scrollHeight;
       return b;
@@ -981,6 +1140,17 @@
     let pttShouldSend = false;
     let pttFinalText = '';
 
+    function showPttFloat() {
+      document.getElementById('ptt-float-text').textContent = '';
+      document.getElementById('ptt-float').classList.add('active');
+      document.getElementById('ptt-btn').classList.add('recording');
+    }
+
+    function hidePttFloat() {
+      document.getElementById('ptt-float').classList.remove('active');
+      document.getElementById('ptt-btn').classList.remove('recording');
+    }
+
     function pttStart(e) {
       e.preventDefault();
       if (pttActive) return;
@@ -988,8 +1158,8 @@
         alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
       }
       pttActive = true; pttShouldSend = false; pttFinalText = '';
-      const btn = document.getElementById('ptt-btn');
-      btn.textContent = '松开 发送'; btn.classList.add('recording');
+      showPttFloat();
+
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       pttRecog = new SR();
       pttRecog.lang = 'zh-CN'; pttRecog.interimResults = true; pttRecog.continuous = true;
@@ -999,37 +1169,37 @@
           if (ev.results[i].isFinal) pttFinalText += ev.results[i][0].transcript;
           else interim += ev.results[i][0].transcript;
         }
-        const show = pttFinalText || interim;
-        if (show) btn.textContent = show;
+        document.getElementById('ptt-float-text').textContent = pttFinalText || interim;
       };
       pttRecog.onend = () => {
         const text = pttFinalText.trim();
-        pttActive = false; resetPttBtn();
+        pttActive = false; hidePttFloat();
         if (pttShouldSend && text) { addBubble(text, 'out'); streamTranslation(text); }
       };
       pttRecog.onerror = ev => {
-        pttActive = false; pttShouldSend = false; resetPttBtn(); showSpeechError(ev.error);
+        pttActive = false; pttShouldSend = false; hidePttFloat(); showSpeechError(ev.error);
       };
       pttRecog.start();
+
+      // 手指/鼠标抬起时（无论在屏幕哪里）→ 发送
+      const onUp = () => {
+        document.removeEventListener('touchend', onUp, true);
+        document.removeEventListener('mouseup', onUp, true);
+        if (!pttActive) return;
+        pttShouldSend = true;
+        document.getElementById('ptt-float-text').textContent =
+          (document.getElementById('ptt-float-text').textContent || '') + ' ✓';
+        if (pttRecog) { try { pttRecog.stop(); } catch (err) {} }
+      };
+      document.addEventListener('touchend', onUp, { capture: true, once: true });
+      document.addEventListener('mouseup', onUp, { capture: true, once: true });
     }
 
-    function pttEnd(e) {
-      e.preventDefault();
-      if (!pttActive) return;
-      pttShouldSend = true;
-      if (pttRecog) { try { pttRecog.stop(); } catch (err) {} }
-    }
-
-    function pttCancel(e) {
+    function pttCancel() {
       if (!pttActive) return;
       pttShouldSend = false; pttActive = false;
       if (pttRecog) { try { pttRecog.abort(); } catch (err) {} }
-      resetPttBtn();
-    }
-
-    function resetPttBtn() {
-      const btn = document.getElementById('ptt-btn');
-      if (btn) { btn.textContent = '按住说话'; btn.classList.remove('recording'); }
+      hidePttFloat();
     }
 
     // ── LIVE MODE ──
