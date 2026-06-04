@@ -1472,10 +1472,16 @@
     }
 
     function buildASTWs(url, srcLang, tgtLang, cb) {
-      const ws = new WebSocket(url); // url = 代理地址，鉴权由代理服务器完成
+      const ws = new WebSocket(url);
       ws.binaryType = 'arraybuffer';
       const sid = genUUID();
       let lastSrc = '';
+      let sessionOk = false;
+
+      // If SESSION_OK not received within 20s, treat as failure
+      const sessionTimer = setTimeout(() => {
+        if (!sessionOk) { ws.close(); cb.onError(); }
+      }, 20000);
 
       ws.onopen = () => {
         ws.send(astEncJson({
@@ -1489,17 +1495,19 @@
       ws.onmessage = e => {
         const msg = astDecode(e.data);
         if (!msg) return;
-        if (msg.event === AST_EV.SESSION_OK)  { cb.onReady(); }
+        if (msg.event === AST_EV.SESSION_OK)  { clearTimeout(sessionTimer); sessionOk = true; cb.onReady(); }
         if (msg.event === AST_EV.SRC_RESP && msg.text) { lastSrc = msg.text; cb.onSrc(msg.text); }
         if (msg.event === AST_EV.SRC_END && msg.text)  { lastSrc = msg.text; }
         if (msg.event === AST_EV.TRS_END && msg.text)  { cb.onTrsEnd(lastSrc, msg.text); lastSrc = ''; }
-        if (msg.event === AST_EV.FAIL) { setLiveStatus('⚠️ 会话错误：' + (msg.message||''), 'error'); }
+        if (msg.event === AST_EV.FAIL) { clearTimeout(sessionTimer); setLiveStatus('⚠️ 会话错误：' + (msg.message||''), 'error'); cb.onError(); }
       };
 
-      ws.onerror = () => cb.onError();
-      ws.onclose = () => {
+      ws.onerror = () => { clearTimeout(sessionTimer); cb.onError(); };
+      ws.onclose = (evt) => {
+        clearTimeout(sessionTimer);
         if (ws === astWsA) astReadyA = false;
         if (ws === astWsB) astReadyB = false;
+        if (!evt.wasClean && !sessionOk) cb.onError();
       };
       return ws;
     }
