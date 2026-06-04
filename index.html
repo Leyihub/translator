@@ -424,30 +424,55 @@
     /* wave-bar (旧，保留兼容) */
     .wave-bar { width: 4px; border-radius: 4px; background: rgba(255,255,255,.2); transition: height .1s; }
 
-    /* Live 模式底部按住说话按钮 */
-    #live-ptt-btn {
-      flex: 1;
-      height: 52px;
-      background: rgba(26,110,245,0.15);
-      border: 1.5px solid rgba(26,110,245,0.4);
-      border-radius: 26px;
-      font-size: 16px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.85);
+    /* Live 模式底部麦克风切换区 */
+    #live-mic-area {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 18px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    #live-mic-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.25);
       cursor: pointer;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-      transition: background .15s, border-color .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, border-color .2s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
-    #live-ptt-btn.recording {
-      background: rgba(26,110,245,0.35);
-      border-color: var(--primary);
-      color: white;
+    #live-mic-btn svg {
+      width: 34px;
+      height: 34px;
+      stroke: rgba(255,255,255,0.7);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke .2s;
     }
-    #live-ptt-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    #live-mic-btn.active {
+      background: rgba(255,77,79,0.2);
+      border-color: #ff4d4f;
+      animation: micPulse 1.6s ease-in-out infinite;
+    }
+    #live-mic-btn.active svg { stroke: #ff4d4f; }
+    #live-mic-btn:disabled { opacity: 0.35; cursor: default; }
+    #live-mic-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.38);
+      letter-spacing: .3px;
+    }
+    @keyframes micPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,77,79,0.45); }
+      50%      { box-shadow: 0 0 0 14px rgba(255,77,79,0); }
     }
 
     #live-direction.visible {
@@ -888,13 +913,23 @@
       </div>
     </div>
 
-    <!-- 状态栏 + 按住说话按钮 -->
+    <!-- 麦克风切换按钮 -->
+    <div id="live-mic-area">
+      <button id="live-mic-btn" disabled onclick="toggleLiveMic()">
+        <svg viewBox="0 0 24 24">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <div id="live-mic-label">连接中…</div>
+    </div>
+
+    <!-- 状态栏 -->
     <div id="live-status-bar">
       <div id="live-status-dot"></div>
       <span id="live-status-text">正在启动...</span>
-      <button id="live-ptt-btn" disabled
-        ontouchstart="livePttPress(event)" ontouchcancel="livePttRelease()"
-        onmousedown="livePttPress(event)">按住说话</button>
     </div>
   </div>
 
@@ -1346,7 +1381,7 @@
 
     // PCM 捕获（Live 模式两个 AST Session 共享）
     let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
-    let livePttActive = false;
+    let liveMicActive = false;
 
     // PTT 模式独立 AST 会话
     let pttWsA = null, pttWsB = null, pttReadyA = false, pttReadyB = false;
@@ -1419,6 +1454,9 @@
 
       if (srcText) chat.appendChild(mkDiv(srcText, 'src', srcLangLabel));
       if (trsText) chat.appendChild(mkDiv(trsText, 'trs', trsLangLabel));
+
+      // 最多保留 5 条对话（每条 = src + trs 共 2 个 div，最多 10 个子元素）
+      while (chat.children.length > 10) chat.removeChild(chat.firstChild);
       chat.scrollTop = chat.scrollHeight;
 
       if (srcText) document.getElementById('live-wv-src').textContent = srcText;
@@ -1459,7 +1497,6 @@
       startLiveSession();
     }
     function closeLive() {
-      livePttRelease();
       stopLiveSession();
       document.getElementById('live-overlay').classList.remove('active');
     }
@@ -1479,21 +1516,32 @@
     }
     function stopLiveSession() {
       liveRunning = false;
-      livePttActive = false;
+      if (liveMicActive) {
+        liveMicActive = false;
+        stopPcm(true);
+      }
       stopASTAll();
       stopFallbackLive();
       stopWaveBars();
       setLiveStatus('已停止', '');
-      stopPcm(true); // release live PCM
     }
 
-    // ── Live 模式手动按住说话 ──
-    async function livePttPress(e) {
-      e.preventDefault();
-      if (livePttActive) return;
-      const btn = document.getElementById('live-ptt-btn');
+    // ── Live 模式：点击切换开始/暂停对话 ──
+    async function toggleLiveMic() {
+      const btn = document.getElementById('live-mic-btn');
+      const label = document.getElementById('live-mic-label');
 
-      // getUserMedia 在用户手势内直接调用 ✅
+      if (liveMicActive) {
+        // 暂停
+        liveMicActive = false;
+        btn.classList.remove('active');
+        label.textContent = '点击继续对话';
+        setLiveStatus('已暂停', '');
+        startWaveBars(false);
+        return;
+      }
+
+      // 开始：getUserMedia 在点击事件（用户手势）内调用 ✅
       if (!astPcmStream) {
         try {
           astPcmStream = await navigator.mediaDevices.getUserMedia({
@@ -1505,7 +1553,7 @@
           const src = astPcmCtx.createMediaStreamSource(astPcmStream);
           astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
           astPcmProc.onaudioprocess = ev => {
-            if (!livePttActive) return;
+            if (!liveMicActive) return;
             const f32 = ev.inputBuffer.getChannelData(0);
             const ratio = rate / 16000;
             const len = Math.round(f32.length / ratio);
@@ -1525,25 +1573,11 @@
         }
       }
 
-      livePttActive = true;
-      btn.textContent = '🎤 正在说话…';
-      btn.classList.add('recording');
-      setLiveStatus('🎤 正在说话…', 'listening');
-
-      const onUp = () => {
-        document.removeEventListener('touchend', onUp, true);
-        document.removeEventListener('mouseup', onUp, true);
-        livePttRelease();
-      };
-      document.addEventListener('touchend', onUp, { capture: true, once: true });
-      document.addEventListener('mouseup', onUp, { capture: true, once: true });
-    }
-    function livePttRelease() {
-      if (!livePttActive) return;
-      livePttActive = false;
-      const btn = document.getElementById('live-ptt-btn');
-      if (btn) { btn.textContent = '按住说话'; btn.classList.remove('recording'); }
-      setLiveStatus('就绪，按住按钮说话', 'listening');
+      liveMicActive = true;
+      btn.classList.add('active');
+      label.textContent = '再次点击暂停';
+      setLiveStatus('🎤 正在聆听…', 'listening');
+      startWaveBars(true);
     }
 
     // ════════════════════════════════════
@@ -1587,7 +1621,8 @@
             if (connectedCount === 1) {
               setLiveStatus('就绪，按住按钮说话', 'listening');
               startWaveBars(false);
-              document.getElementById('live-ptt-btn').disabled = false;
+              document.getElementById('live-mic-btn').disabled = false;
+              document.getElementById('live-mic-label').textContent = '点击开始对话';
             }
           },
           onSrc: t => document.getElementById('live-wv-src').textContent = t,
@@ -1608,7 +1643,8 @@
             if (connectedCount === 1) {
               setLiveStatus('就绪，按住按钮说话', 'listening');
               startWaveBars(false);
-              document.getElementById('live-ptt-btn').disabled = false;
+              document.getElementById('live-mic-btn').disabled = false;
+              document.getElementById('live-mic-label').textContent = '点击开始对话';
             }
           },
           onSrc: t => { if (!isZh(t)) document.getElementById('live-wv-src').textContent = t; },
