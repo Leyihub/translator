@@ -424,6 +424,32 @@
     /* wave-bar (旧，保留兼容) */
     .wave-bar { width: 4px; border-radius: 4px; background: rgba(255,255,255,.2); transition: height .1s; }
 
+    /* Live 模式底部按住说话按钮 */
+    #live-ptt-btn {
+      flex: 1;
+      height: 52px;
+      background: rgba(26,110,245,0.15);
+      border: 1.5px solid rgba(26,110,245,0.4);
+      border-radius: 26px;
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: background .15s, border-color .15s;
+    }
+    #live-ptt-btn.recording {
+      background: rgba(26,110,245,0.35);
+      border-color: var(--primary);
+      color: white;
+    }
+    #live-ptt-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     #live-direction.visible {
       opacity: 1;
     }
@@ -862,10 +888,13 @@
       </div>
     </div>
 
-    <!-- 状态栏 -->
+    <!-- 状态栏 + 按住说话按钮 -->
     <div id="live-status-bar">
       <div id="live-status-dot"></div>
       <span id="live-status-text">正在启动...</span>
+      <button id="live-ptt-btn" disabled
+        ontouchstart="livePttPress(event)" ontouchcancel="livePttRelease()"
+        onmousedown="livePttPress(event)">按住说话</button>
     </div>
   </div>
 
@@ -1168,9 +1197,7 @@
     }
 
     // ── PTT 按住说话 ──
-    let pttRecog = null;
     let pttActive = false;
-    let pttShouldSend = false;
     let pttFinalText = '';
 
     function showPttFloat() {
@@ -1178,53 +1205,108 @@
       document.getElementById('ptt-float').classList.add('active');
       document.getElementById('ptt-btn').classList.add('recording');
     }
-
     function hidePttFloat() {
       document.getElementById('ptt-float').classList.remove('active');
       document.getElementById('ptt-btn').classList.remove('recording');
     }
 
-    function pttStart(e) {
+    // PTT：getUserMedia 在按钮事件（用户手势）内直接调用，绕过 SpeechRecognition 的谷歌依赖
+    async function pttStart(e) {
       e.preventDefault();
       if (pttActive) return;
-      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
+
+      const proxyUrl = localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL;
+
+      // 先获取麦克风 —— 此时仍在用户手势上下文 ✅
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+      } catch (err) {
+        alert(err.name === 'NotAllowedError'
+          ? '麦克风权限被拒绝，请在浏览器地址栏点击锁形图标开启麦克风后刷新'
+          : '无法访问麦克风：' + err.message);
+        return;
       }
-      pttActive = true; pttShouldSend = false; pttFinalText = '';
+
+      pttActive = true;
       showPttFloat();
 
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      pttRecog = new SR();
-      // 按住说话：用设备默认语言识别，后续由 detectLang 判断翻译方向
-      pttRecog.lang = navigator.language || 'zh-CN';
-      pttRecog.interimResults = true; pttRecog.continuous = true;
-      pttRecog.onresult = ev => {
-        let interim = '';
-        for (let i = ev.resultIndex; i < ev.results.length; i++) {
-          if (ev.results[i].isFinal) pttFinalText += ev.results[i][0].transcript;
-          else interim += ev.results[i][0].transcript;
-        }
-        document.getElementById('ptt-float-text').textContent = pttFinalText || interim;
-      };
-      pttRecog.onend = () => {
-        const text = pttFinalText.trim();
-        pttActive = false; hidePttFloat();
-        if (pttShouldSend && text) { addBubble(text, 'out'); streamTranslation(text); }
-      };
-      pttRecog.onerror = ev => {
-        pttActive = false; pttShouldSend = false; hidePttFloat(); showSpeechError(ev.error);
-      };
-      pttRecog.start();
+      // 建立 PCM 管道
+      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      await ctx.resume();
+      const rate = ctx.sampleRate;
+      const src = ctx.createMediaStreamSource(stream);
+      const proc = ctx.createScriptProcessor(4096, 1, 1);
 
-      // 手指/鼠标抬起时（无论在屏幕哪里）→ 发送
+      // 连接 PTT 专用 AST 会话（若未就绪则提示等待）
+      let pttWsALocal = null, pttWsBLocal = null;
+      let pttReadyLocal = false;
+      let pttSrcText = '';
+
+      const makePttWs = (srcLang, tgtLang, onSrc, onTrsEnd) => {
+        const ws = new WebSocket(proxyUrl);
+        ws.binaryType = 'arraybuffer';
+        const sid = genUUID();
+        let lastSrc = '', ready = false;
+        const t = setTimeout(() => { if (!ready) ws.close(); }, 20000);
+        ws.onopen = () => ws.send(astEncJson({
+          request_meta: { session_id: sid, resource_id: AST_RES_ID },
+          event: AST_EV.START,
+          source_audio: { format: 'wav', codec: 'raw', rate: 16000, bits: 16, channel: 1 },
+          request: { mode: 's2t', source_language: srcLang, target_language: tgtLang }
+        }));
+        ws.onmessage = ev => {
+          const msg = astDecode(ev.data);
+          if (!msg) return;
+          if (msg.event === AST_EV.SESSION_OK) { clearTimeout(t); ready = true; pttReadyLocal = true; }
+          if (msg.event === AST_EV.SRC_RESP && msg.text) { lastSrc = msg.text; onSrc(msg.text); }
+          if (msg.event === AST_EV.TRS_END && msg.text) onTrsEnd(lastSrc, msg.text);
+        };
+        ws.onerror = () => clearTimeout(t);
+        return ws;
+      };
+
+      pttWsALocal = makePttWs('zh', 'id',
+        t => { document.getElementById('ptt-float-text').textContent = t; pttSrcText = t; },
+        (src, trs) => { if (isZh(src)) { addBubble(src, 'out'); addBubble(trs, 'in'); if (ttsOn) speak(trs); } }
+      );
+      pttWsBLocal = makePttWs('id', 'zh',
+        t => { if (!isZh(t)) { document.getElementById('ptt-float-text').textContent = t; pttSrcText = t; } },
+        (src, trs) => { if (!isZh(src)) { addBubble(src, 'out'); addBubble(trs, 'in'); if (ttsOn) speak(trs); } }
+      );
+
+      proc.onaudioprocess = ev => {
+        if (!pttActive || !pttReadyLocal) return;
+        const f32 = ev.inputBuffer.getChannelData(0);
+        const ratio = rate / 16000;
+        const len = Math.round(f32.length / ratio);
+        const i16 = new Int16Array(len);
+        for (let i = 0; i < len; i++) {
+          i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
+        }
+        const enc = astEncAudio(i16.buffer);
+        if (pttWsALocal?.readyState === WebSocket.OPEN) pttWsALocal.send(enc);
+        if (pttWsBLocal?.readyState === WebSocket.OPEN) pttWsBLocal.send(enc);
+      };
+      src.connect(proc);
+      proc.connect(ctx.destination);
+
+      // 释放：停止 PCM，关闭临时会话
       const onUp = () => {
         document.removeEventListener('touchend', onUp, true);
         document.removeEventListener('mouseup', onUp, true);
-        if (!pttActive) return;
-        pttShouldSend = true;
-        document.getElementById('ptt-float-text').textContent =
-          (document.getElementById('ptt-float-text').textContent || '') + ' ✓';
-        if (pttRecog) { try { pttRecog.stop(); } catch (err) {} }
+        pttActive = false;
+        hidePttFloat();
+        proc.disconnect(); ctx.close().catch(() => {});
+        stream.getTracks().forEach(t => t.stop());
+        [pttWsALocal, pttWsBLocal].forEach(ws => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            try { ws.send(astEncJson({ event: AST_EV.FINISH })); } catch {}
+            ws.close();
+          }
+        });
       };
       document.addEventListener('touchend', onUp, { capture: true, once: true });
       document.addEventListener('mouseup', onUp, { capture: true, once: true });
@@ -1232,9 +1314,17 @@
 
     function pttCancel() {
       if (!pttActive) return;
-      pttShouldSend = false; pttActive = false;
-      if (pttRecog) { try { pttRecog.abort(); } catch (err) {} }
+      pttActive = false;
       hidePttFloat();
+    }
+
+    // 共用：停止 Live 模式 PCM 捕获
+    function stopPcm(full) {
+      if (astPcmProc) { astPcmProc.disconnect(); astPcmProc = null; }
+      if (full) {
+        if (astPcmCtx) { astPcmCtx.close().catch(() => {}); astPcmCtx = null; }
+        if (astPcmStream) { astPcmStream.getTracks().forEach(t => t.stop()); astPcmStream = null; }
+      }
     }
 
     // ══════════════════════════════════════════
@@ -1254,10 +1344,12 @@
     let liveRunning  = false;
     let astApiKey    = '';  // 存代理 URL，如 wss://your-proxy.onrender.com
 
-    // PCM 捕获（两个 AST Session 共享同一路音频）
+    // PCM 捕获（Live 模式两个 AST Session 共享）
     let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
-    // 预热：在用户手势上下文中提前申请麦克风
-    let _prewarmStream = null, _prewarmCtx = null;
+    let livePttActive = false;
+
+    // PTT 模式独立 AST 会话
+    let pttWsA = null, pttWsB = null, pttReadyA = false, pttReadyB = false;
     // 两个并行 WebSocket：zh→id 和 id→zh
     let astWsA = null, astReadyA = false; // zh→id
     let astWsB = null, astReadyB = false; // id→zh
@@ -1364,24 +1456,10 @@
       document.getElementById('live-chat-view').style.display = '';
       document.getElementById('live-wave-view').style.display = 'none';
       liveViewMode = 'chat';
-      // 在用户手势上下文（点击瞬间）预先申请麦克风权限和 AudioContext
-      // 移动端 Chrome 要求必须在手势内调用，否则异步连接后再调用会被拒绝
-      _prewarmMic();
       startLiveSession();
     }
-
-    async function _prewarmMic() {
-      try {
-        _prewarmStream = await navigator.mediaDevices.getUserMedia({
-          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
-        });
-        _prewarmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-        await _prewarmCtx.resume();
-      } catch (e) {
-        setLiveStatus('⚠️ 麦克风权限被拒绝，请在浏览器设置中允许麦克风', 'error');
-      }
-    }
     function closeLive() {
+      livePttRelease();
       stopLiveSession();
       document.getElementById('live-overlay').classList.remove('active');
     }
@@ -1392,21 +1470,80 @@
       startWaveBars(false);
       astApiKey = localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL;
       if (astApiKey && astApiKey.startsWith('wss://')) {
-        setDetectLabel('豆包同声传译 2.0 · 自动识别语种');
+        setDetectLabel('豆包同声传译 2.0 · 按住下方按钮说话');
         await startASTDual();
       } else {
-        setDetectLabel('浏览器识别模式 · 自动识别语种（配置代理可升级至 AST 2.0）');
+        setDetectLabel('浏览器识别模式 · 自动识别语种');
         startFallbackLive();
       }
     }
     function stopLiveSession() {
       liveRunning = false;
+      livePttActive = false;
       stopASTAll();
       stopFallbackLive();
       stopWaveBars();
       setLiveStatus('已停止', '');
-      if (_prewarmStream) { _prewarmStream.getTracks().forEach(t => t.stop()); _prewarmStream = null; }
-      if (_prewarmCtx)    { _prewarmCtx.close().catch(() => {}); _prewarmCtx = null; }
+      stopPcm(true); // release live PCM
+    }
+
+    // ── Live 模式手动按住说话 ──
+    async function livePttPress(e) {
+      e.preventDefault();
+      if (livePttActive) return;
+      const btn = document.getElementById('live-ptt-btn');
+
+      // getUserMedia 在用户手势内直接调用 ✅
+      if (!astPcmStream) {
+        try {
+          astPcmStream = await navigator.mediaDevices.getUserMedia({
+            audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+          });
+          astPcmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+          await astPcmCtx.resume();
+          const rate = astPcmCtx.sampleRate;
+          const src = astPcmCtx.createMediaStreamSource(astPcmStream);
+          astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
+          astPcmProc.onaudioprocess = ev => {
+            if (!livePttActive) return;
+            const f32 = ev.inputBuffer.getChannelData(0);
+            const ratio = rate / 16000;
+            const len = Math.round(f32.length / ratio);
+            const i16 = new Int16Array(len);
+            for (let i = 0; i < len; i++) {
+              i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
+            }
+            const enc = astEncAudio(i16.buffer);
+            if (astReadyA && astWsA?.readyState === WebSocket.OPEN) astWsA.send(enc);
+            if (astReadyB && astWsB?.readyState === WebSocket.OPEN) astWsB.send(enc);
+          };
+          src.connect(astPcmProc);
+          astPcmProc.connect(astPcmCtx.destination);
+        } catch (err) {
+          setLiveStatus('⚠️ 麦克风：' + err.message, 'error');
+          return;
+        }
+      }
+
+      livePttActive = true;
+      btn.textContent = '🎤 正在说话…';
+      btn.classList.add('recording');
+      setLiveStatus('🎤 正在说话…', 'listening');
+
+      const onUp = () => {
+        document.removeEventListener('touchend', onUp, true);
+        document.removeEventListener('mouseup', onUp, true);
+        livePttRelease();
+      };
+      document.addEventListener('touchend', onUp, { capture: true, once: true });
+      document.addEventListener('mouseup', onUp, { capture: true, once: true });
+    }
+    function livePttRelease() {
+      if (!livePttActive) return;
+      livePttActive = false;
+      const btn = document.getElementById('live-ptt-btn');
+      if (btn) { btn.textContent = '按住说话'; btn.classList.remove('recording'); }
+      setLiveStatus('就绪，按住按钮说话', 'listening');
     }
 
     // ════════════════════════════════════
@@ -1447,10 +1584,10 @@
           onReady: async () => {
             astReadyA = true;
             connectedCount++;
-            if (connectedCount === 1) { // 第一个就绪时启动 PCM
-              setLiveStatus('🎤 正在聆听（双语自动识别）…', 'listening');
-              startWaveBars(true);
-              await startPCMCapture();
+            if (connectedCount === 1) {
+              setLiveStatus('就绪，按住按钮说话', 'listening');
+              startWaveBars(false);
+              document.getElementById('live-ptt-btn').disabled = false;
             }
           },
           onSrc: t => document.getElementById('live-wv-src').textContent = t,
@@ -1469,9 +1606,9 @@
             astReadyB = true;
             connectedCount++;
             if (connectedCount === 1) {
-              setLiveStatus('🎤 正在聆听（双语自动识别）…', 'listening');
-              startWaveBars(true);
-              await startPCMCapture();
+              setLiveStatus('就绪，按住按钮说话', 'listening');
+              startWaveBars(false);
+              document.getElementById('live-ptt-btn').disabled = false;
             }
           },
           onSrc: t => { if (!isZh(t)) document.getElementById('live-wv-src').textContent = t; },
@@ -1545,37 +1682,7 @@
       if (astPcmStream) { astPcmStream.getTracks().forEach(t => t.stop()); astPcmStream = null; }
     }
 
-    async function startPCMCapture() {
-      if (astPcmStream) return;
-      try {
-        // Use pre-warmed stream/context obtained during user gesture; fall back to new request
-        astPcmStream = _prewarmStream || await navigator.mediaDevices.getUserMedia({
-          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
-        });
-        astPcmCtx = _prewarmCtx || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-        _prewarmStream = null; _prewarmCtx = null;
-        if (astPcmCtx.state === 'suspended') await astPcmCtx.resume();
-        const actualRate = astPcmCtx.sampleRate;
-        const src = astPcmCtx.createMediaStreamSource(astPcmStream);
-        astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
-        astPcmProc.onaudioprocess = e => {
-          const f32 = e.inputBuffer.getChannelData(0);
-          const ratio = actualRate / 16000;
-          const len = Math.round(f32.length / ratio);
-          const i16 = new Int16Array(len);
-          for (let i = 0; i < len; i++) {
-            i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
-          }
-          const enc = astEncAudio(i16.buffer);
-          if (astReadyA && astWsA?.readyState === WebSocket.OPEN) astWsA.send(enc);
-          if (astReadyB && astWsB?.readyState === WebSocket.OPEN) astWsB.send(enc);
-        };
-        src.connect(astPcmProc);
-        astPcmProc.connect(astPcmCtx.destination);
-      } catch (err) {
-        setLiveStatus('⚠️ 麦克风失败：' + err.message, 'error');
-      }
-    }
+    // startPCMCapture 已移至 livePttPress（手动触发）
 
     // ════════════════════════════════════
     // ── 降级：Web Speech API + 翻译 API ──
