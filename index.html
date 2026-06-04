@@ -727,8 +727,8 @@
       <h3>API Key 设置</h3>
       <p>翻译 Key（ARK 平台，用于文字翻译）：</p>
       <input id="key-input" type="password" placeholder="ark-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
-      <p style="margin-top:10px">同声传译 Key（火山引擎控制台 → AST 服务，用于 Live 模式）：</p>
-      <input id="ast-key-input" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx（可选）" autocomplete="off" />
+      <p style="margin-top:10px">AST 代理地址（Live 同声传译模式，部署后填入）：</p>
+      <input id="proxy-url-input" type="text" placeholder="wss://your-ast-proxy.onrender.com" autocomplete="off" style="font-size:12px" />
       <button id="key-save" onclick="saveKey()">保存并开始使用</button>
     </div>
   </div>
@@ -916,7 +916,8 @@
       const saved = localStorage.getItem('doubao_api_key');
       if (saved) { apiKey = saved; } else { document.getElementById('key-modal').classList.add('active'); }
       const savedAst = localStorage.getItem('ast_api_key');
-      if (savedAst) { astApiKey = savedAst; document.getElementById('ast-key-input').value = savedAst; }
+      const savedProxy = localStorage.getItem('ast_proxy_url');
+      if (savedProxy) { astApiKey = savedProxy; document.getElementById('proxy-url-input').value = savedProxy; }
     };
 
     function saveKey() {
@@ -924,8 +925,8 @@
       if (!val) { alert('请输入翻译 API Key'); return; }
       apiKey = val;
       localStorage.setItem('doubao_api_key', val);
-      const astVal = document.getElementById('ast-key-input').value.trim();
-      if (astVal) { astApiKey = astVal; localStorage.setItem('ast_api_key', astVal); }
+      const proxyVal = document.getElementById('proxy-url-input').value.trim();
+      if (proxyVal) { astApiKey = proxyVal; localStorage.setItem('ast_proxy_url', proxyVal); }
       document.getElementById('key-modal').classList.remove('active');
     }
 
@@ -1244,7 +1245,7 @@
 
     let liveViewMode = 'chat';
     let liveRunning  = false;
-    let astApiKey    = '';
+    let astApiKey    = '';  // 存代理 URL，如 wss://your-proxy.onrender.com
 
     // PCM 捕获（两个 AST Session 共享同一路音频）
     let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
@@ -1365,12 +1366,12 @@
       liveRunning = true;
       setLiveStatus('正在启动…', '');
       startWaveBars(false);
-      astApiKey = localStorage.getItem('ast_api_key') || '';
-      if (astApiKey) {
+      astApiKey = localStorage.getItem('ast_proxy_url') || '';
+      if (astApiKey && astApiKey.startsWith('wss://')) {
         setDetectLabel('豆包同声传译 2.0 · 自动识别语种');
         await startASTDual();
       } else {
-        setDetectLabel('浏览器识别模式 · 自动识别语种');
+        setDetectLabel('浏览器识别模式 · 自动识别语种（配置代理可升级至 AST 2.0）');
         startFallbackLive();
       }
     }
@@ -1391,10 +1392,8 @@
     async function startASTDual() {
       setLiveStatus('正在连接同声传译服务…', '');
       try {
-        // 注：浏览器 WebSocket 无法设置自定义 header，通过 URL 参数传递鉴权
-        // 若服务器不支持 URL 参数鉴权，连接会在握手时被拒绝，自动降级
-        const makeUrl = () =>
-          `${AST_WS_URL}?api_key=${encodeURIComponent(astApiKey)}&resource_id=${encodeURIComponent(AST_RES_ID)}`;
+        // 使用后端代理 URL，代理负责添加 X-Api-Key 鉴权头
+        const makeUrl = () => astApiKey; // 直接用代理 wss:// URL
 
         let connectedCount = 0;
         let failedCount = 0;
@@ -1453,7 +1452,7 @@
     }
 
     function buildASTWs(url, srcLang, tgtLang, cb) {
-      const ws = new WebSocket(url);
+      const ws = new WebSocket(url); // url = 代理地址，鉴权由代理服务器完成
       ws.binaryType = 'arraybuffer';
       const sid = genUUID();
       let lastSrc = '';
