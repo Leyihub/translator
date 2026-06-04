@@ -1256,6 +1256,8 @@
 
     // PCM 捕获（两个 AST Session 共享同一路音频）
     let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
+    // 预热：在用户手势上下文中提前申请麦克风
+    let _prewarmStream = null, _prewarmCtx = null;
     // 两个并行 WebSocket：zh→id 和 id→zh
     let astWsA = null, astReadyA = false; // zh→id
     let astWsB = null, astReadyB = false; // id→zh
@@ -1362,7 +1364,22 @@
       document.getElementById('live-chat-view').style.display = '';
       document.getElementById('live-wave-view').style.display = 'none';
       liveViewMode = 'chat';
+      // 在用户手势上下文（点击瞬间）预先申请麦克风权限和 AudioContext
+      // 移动端 Chrome 要求必须在手势内调用，否则异步连接后再调用会被拒绝
+      _prewarmMic();
       startLiveSession();
+    }
+
+    async function _prewarmMic() {
+      try {
+        _prewarmStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        _prewarmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        await _prewarmCtx.resume();
+      } catch (e) {
+        setLiveStatus('⚠️ 麦克风权限被拒绝，请在浏览器设置中允许麦克风', 'error');
+      }
     }
     function closeLive() {
       stopLiveSession();
@@ -1388,6 +1405,8 @@
       stopFallbackLive();
       stopWaveBars();
       setLiveStatus('已停止', '');
+      if (_prewarmStream) { _prewarmStream.getTracks().forEach(t => t.stop()); _prewarmStream = null; }
+      if (_prewarmCtx)    { _prewarmCtx.close().catch(() => {}); _prewarmCtx = null; }
     }
 
     // ════════════════════════════════════
@@ -1529,11 +1548,12 @@
     async function startPCMCapture() {
       if (astPcmStream) return;
       try {
-        astPcmStream = await navigator.mediaDevices.getUserMedia({
+        // Use pre-warmed stream/context obtained during user gesture; fall back to new request
+        astPcmStream = _prewarmStream || await navigator.mediaDevices.getUserMedia({
           audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
         });
-        astPcmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-        // Autoplay policy: AudioContext starts suspended outside user-gesture — must resume explicitly
+        astPcmCtx = _prewarmCtx || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        _prewarmStream = null; _prewarmCtx = null;
         if (astPcmCtx.state === 'suspended') await astPcmCtx.resume();
         const actualRate = astPcmCtx.sampleRate;
         const src = astPcmCtx.createMediaStreamSource(astPcmStream);
