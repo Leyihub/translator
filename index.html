@@ -248,169 +248,190 @@
       }
     }
 
-    /* LIVE OVERLAY */
+    /* ── LIVE OVERLAY ── */
     #live-overlay {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 200;
-      background: #0d1117;
+      background: #0b0f1a;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
     }
+    #live-overlay.active { display: flex; }
 
-    #live-overlay.active {
+    /* 顶部栏 */
+    #live-hdr {
       display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
     }
-
-    #live-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 36px;
-      height: 36px;
+    #live-hdr-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: .3px;
+    }
+    #live-hdr-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      font-weight: 400;
+      margin-left: 6px;
+    }
+    .live-icon-btn {
+      width: 36px; height: 36px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255,255,255,0.08);
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
-
-    #live-close svg {
-      width: 20px;
-      height: 20px;
-      stroke: white;
+    .live-icon-btn svg {
+      width: 18px; height: 18px;
+      stroke: rgba(255,255,255,0.7);
       stroke-width: 2;
-      fill: none;
-      stroke-linecap: round;
-    }
-
-    #live-title {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    #live-status {
-      font-size: 20px;
-      font-weight: 700;
-      color: white;
-      margin-bottom: 6px;
-      min-height: 28px;
-      max-width: 280px;
-      text-align: center;
-    }
-
-    #live-translation {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      max-width: 280px;
-      text-align: center;
-      min-height: 44px;
-      line-height: 1.5;
-    }
-
-    #live-orb-wrap {
-      position: relative;
-      width: 160px;
-      height: 160px;
-      margin: 28px 0;
-    }
-
-    #live-orb {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #4a9eff, #1a6ef5 60%, #0d4fc4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
-    #live-orb.listening {
-      animation: orb-pulse 1.2s infinite;
-    }
-
-    #live-orb.speaking {
-      animation: orb-speak 0.8s infinite;
-    }
-
-    @keyframes orb-pulse {
-      0% {
-        box-shadow: 0 0 0 0 rgba(26, 110, 245, 0.5);
-        transform: scale(1);
-      }
-
-      50% {
-        box-shadow: 0 0 0 28px rgba(26, 110, 245, 0);
-        transform: scale(1.04);
-      }
-
-      100% {
-        box-shadow: 0 0 0 0 rgba(26, 110, 245, 0);
-        transform: scale(1);
-      }
-    }
-
-    @keyframes orb-speak {
-
-      0%,
-      100% {
-        transform: scale(1)
-      }
-
-      50% {
-        transform: scale(1.07)
-      }
-    }
-
-    #live-orb svg {
-      width: 52px;
-      height: 52px;
-      stroke: white;
-      stroke-width: 1.8;
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
-    #live-wave {
+    /* 语言方向切换栏 */
+    #live-lang-bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      flex-shrink: 0;
+    }
+    .lang-dir-btn {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+    }
+    .lang-dir-btn.active {
+      border-color: var(--live-green);
+      color: var(--live-green);
+      background: rgba(0,196,140,0.1);
+    }
+
+    /* 聊天视图 */
+    #live-chat-view {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #live-chat-view::-webkit-scrollbar { width: 3px; }
+    #live-chat-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+    .live-msg {
+      max-width: 85%;
+      border-radius: 14px;
+      padding: 10px 14px;
+      line-height: 1.5;
+    }
+    .live-msg.src {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      font-size: 15px;
+      border-bottom-right-radius: 4px;
+    }
+    .live-msg.trs {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.9);
+      font-size: 15px;
+      border-bottom-left-radius: 4px;
+    }
+    .live-msg .msg-meta {
+      font-size: 11px;
+      opacity: .5;
+      margin-top: 4px;
+    }
+
+    /* 声波视图 */
+    #live-wave-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    #live-wv-src {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      text-align: center;
+      max-width: 300px;
+      min-height: 32px;
+      line-height: 1.4;
+    }
+    #live-wv-trs {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      max-width: 300px;
+      min-height: 28px;
+      line-height: 1.4;
+    }
+    #live-wv-bars {
       display: flex;
       gap: 5px;
       align-items: flex-end;
-      height: 32px;
+      height: 48px;
+    }
+    .wv-bar {
+      width: 5px;
+      border-radius: 5px;
+      background: var(--primary);
+      transition: height 80ms;
+      min-height: 4px;
     }
 
-    .wave-bar {
-      width: 4px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.2);
-      transition: height .1s;
+    /* 底部状态栏 */
+    #live-status-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.07);
     }
-
-    #live-state-label {
-      margin-top: 10px;
+    #live-status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    #live-status-dot.listening { background: var(--live-green); animation: blink 1.2s infinite; }
+    #live-status-dot.thinking  { background: #f5a623; }
+    #live-status-dot.error     { background: var(--red); }
+    #live-status-text {
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.4);
-      height: 20px;
+      color: rgba(255,255,255,0.45);
+      flex: 1;
     }
 
-    #live-direction {
-      margin-top: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      color: var(--live-green);
-      height: 20px;
-      opacity: 0;
-      transition: opacity .3s;
-    }
+    /* wave-bar (旧，保留兼容) */
+    .wave-bar { width: 4px; border-radius: 4px; background: rgba(255,255,255,.2); transition: height .1s; }
 
     #live-direction.visible {
       opacity: 1;
@@ -712,9 +733,11 @@
   <!-- API KEY MODAL -->
   <div id="key-modal">
     <div id="key-card">
-      <h3>输入豆包 API Key</h3>
-      <p>请前往火山引擎控制台获取 API Key（格式：ark-xxxxxxxx-...），Key 仅保存在本地浏览器，不会上传。</p>
+      <h3>API Key 设置</h3>
+      <p>翻译 Key（ARK 平台，用于文字翻译）：</p>
       <input id="key-input" type="password" placeholder="ark-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
+      <p style="margin-top:10px">同声传译 Key（火山引擎控制台 → AST 服务，用于 Live 模式）：</p>
+      <input id="ast-key-input" type="password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx（可选）" autocomplete="off" />
       <button id="key-save" onclick="saveKey()">保存并开始使用</button>
     </div>
   </div>
@@ -811,36 +834,48 @@
 
   <!-- LIVE OVERLAY -->
   <div id="live-overlay">
-    <button id="live-close" onclick="closeLive()">
-      <svg viewBox="0 0 24 24">
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-    </button>
-    <div id="live-title">LIVE 双语实时翻译</div>
-    <div id="live-status">准备就绪</div>
-    <div id="live-translation">点击下方球体开始对话</div>
-    <div id="live-orb-wrap">
-      <div id="live-orb" onclick="toggleLiveListen()">
-        <svg viewBox="0 0 24 24">
-          <rect x="9" y="2" width="6" height="12" rx="3" />
-          <path d="M5 10a7 7 0 0 0 14 0" />
-          <line x1="12" y1="19" x2="12" y2="23" />
-          <line x1="8" y1="23" x2="16" y2="23" />
-        </svg>
+    <!-- 顶部栏 -->
+    <div id="live-hdr">
+      <button class="live-icon-btn" onclick="closeLive()" title="关闭">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div id="live-hdr-title">同声传译 2.0<span id="live-hdr-sub">豆包 AST</span></div>
+      <button class="live-icon-btn" id="live-view-btn" onclick="toggleLiveView()" title="切换视图">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    </div>
+
+    <!-- 语言方向 -->
+    <div id="live-lang-bar">
+      <button class="lang-dir-btn active" id="lbtn-zh-id" onclick="setLiveLang('zh','id')">中文 → Indonesia</button>
+      <button class="lang-dir-btn" id="lbtn-id-zh" onclick="setLiveLang('id','zh')">Indonesia → 中文</button>
+    </div>
+
+    <!-- 聊天记录视图 -->
+    <div id="live-chat-view"></div>
+
+    <!-- 声波视图 -->
+    <div id="live-wave-view">
+      <div id="live-wv-src"></div>
+      <div id="live-wv-trs"></div>
+      <div id="live-wv-bars">
+        <div class="wv-bar" style="height:6px"></div>
+        <div class="wv-bar" style="height:14px"></div>
+        <div class="wv-bar" style="height:9px"></div>
+        <div class="wv-bar" style="height:22px"></div>
+        <div class="wv-bar" style="height:12px"></div>
+        <div class="wv-bar" style="height:18px"></div>
+        <div class="wv-bar" style="height:8px"></div>
+        <div class="wv-bar" style="height:16px"></div>
+        <div class="wv-bar" style="height:10px"></div>
       </div>
     </div>
-    <div id="live-wave">
-      <div class="wave-bar" style="height:5px"></div>
-      <div class="wave-bar" style="height:10px"></div>
-      <div class="wave-bar" style="height:7px"></div>
-      <div class="wave-bar" style="height:16px"></div>
-      <div class="wave-bar" style="height:9px"></div>
-      <div class="wave-bar" style="height:13px"></div>
-      <div class="wave-bar" style="height:5px"></div>
+
+    <!-- 状态栏 -->
+    <div id="live-status-bar">
+      <div id="live-status-dot"></div>
+      <span id="live-status-text">正在启动...</span>
     </div>
-    <div id="live-state-label">点击麦克风开始</div>
-    <div id="live-direction"></div>
   </div>
 
   <script>
@@ -881,26 +916,25 @@
 
     let apiKey = '';
     let ttsOn = true;
-    let liveRecog = null;
-    let liveActive = false;
+    let liveActive = false; // 保留旧变量兼容性
     let waveTick;
     let typing = false;
 
     // ── INIT ──
     window.onload = () => {
       const saved = localStorage.getItem('doubao_api_key');
-      if (saved) {
-        apiKey = saved;
-      } else {
-        document.getElementById('key-modal').classList.add('active');
-      }
+      if (saved) { apiKey = saved; } else { document.getElementById('key-modal').classList.add('active'); }
+      const savedAst = localStorage.getItem('ast_api_key');
+      if (savedAst) { astApiKey = savedAst; document.getElementById('ast-key-input').value = savedAst; }
     };
 
     function saveKey() {
       const val = document.getElementById('key-input').value.trim();
-      if (!val) { alert('请输入 API Key'); return; }
+      if (!val) { alert('请输入翻译 API Key'); return; }
       apiKey = val;
       localStorage.setItem('doubao_api_key', val);
+      const astVal = document.getElementById('ast-key-input').value.trim();
+      if (astVal) { astApiKey = astVal; localStorage.setItem('ast_api_key', astVal); }
       document.getElementById('key-modal').classList.remove('active');
     }
 
@@ -1162,7 +1196,9 @@
 
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       pttRecog = new SR();
-      pttRecog.lang = 'zh-CN'; pttRecog.interimResults = true; pttRecog.continuous = true;
+      // 按住说话：用设备默认语言识别，后续由 detectLang 判断翻译方向
+      pttRecog.lang = navigator.language || 'zh-CN';
+      pttRecog.interimResults = true; pttRecog.continuous = true;
       pttRecog.onresult = ev => {
         let interim = '';
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
@@ -1202,118 +1238,338 @@
       hidePttFloat();
     }
 
-    // ── LIVE MODE ──
+    // ══════════════════════════════════════════
+    // ── LIVE MODE (豆包同声传译 2.0 + 降级方案) ──
+    // ══════════════════════════════════════════
+
+    const AST_WS_URL = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
+    const AST_RESOURCE_ID = 'volc.service_type.10053';
+    // AST 事件码
+    const AST_EV = { START:100, TASK:200, FINISH:102,
+      SESSION_OK:150, SRC_START:650, SRC_RESP:651, SRC_END:652,
+      TRS_START:653, TRS_RESP:654, TRS_END:655,
+      DONE:152, FAIL:153, MUTED:250 };
+
+    let liveViewMode = 'chat';   // 'chat' | 'wave'
+    let liveSrcLang  = 'zh';
+    let liveTgtLang  = 'id';
+    let liveRunning  = false;
+
+    // AST WebSocket state
+    let astWs   = null;
+    let astReady = false;
+    let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
+    let waveAnimTick = null;
+
+    // ── 设置 Key ──
+    let astApiKey = '';
+
+    // ── 工具 ──
+    function genUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    // AST 二进制帧编码（8字节头 + payload）
+    // Header: [0]=0x11(v1,hdr=4B), [1]=msgType, [2]=serial/compress, [3]=0x00, [4-7]=payloadSize
+    function astEncodeJson(payload) {
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      const buf = new ArrayBuffer(8 + bytes.byteLength);
+      const v = new DataView(buf);
+      v.setUint8(0, 0x11); v.setUint8(1, 0x10); v.setUint8(2, 0x10); v.setUint8(3, 0x00);
+      v.setUint32(4, bytes.byteLength, false);
+      new Uint8Array(buf, 8).set(bytes);
+      return buf;
+    }
+    function astEncodeAudio(pcmBuffer) {
+      const buf = new ArrayBuffer(8 + pcmBuffer.byteLength);
+      const v = new DataView(buf);
+      v.setUint8(0, 0x11); v.setUint8(1, 0x20); v.setUint8(2, 0x00); v.setUint8(3, 0x00);
+      v.setUint32(4, pcmBuffer.byteLength, false);
+      new Uint8Array(buf, 8).set(new Uint8Array(pcmBuffer));
+      return buf;
+    }
+    function astDecodeMsg(buffer) {
+      try {
+        const v = new DataView(buffer);
+        const sz = v.getUint32(4, false);
+        if (sz === 0 || buffer.byteLength < 8 + sz) return null;
+        return JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 8, sz)));
+      } catch { return null; }
+    }
+
+    // ── UI 辅助 ──
+    function setLiveStatus(text, dotState) {
+      document.getElementById('live-status-text').textContent = text;
+      const dot = document.getElementById('live-status-dot');
+      dot.className = '';
+      if (dotState) dot.classList.add(dotState);
+    }
+    function addLiveMsg(text, type) { // type = 'src' | 'trs'
+      const chat = document.getElementById('live-chat-view');
+      const div = document.createElement('div');
+      div.className = `live-msg ${type}`;
+      div.textContent = text;
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.textContent = (type === 'src'
+        ? (liveSrcLang === 'zh' ? '中文' : 'Indonesia')
+        : (liveTgtLang === 'zh' ? '中文' : 'Indonesia')) + ' · '
+        + new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' });
+      div.appendChild(meta);
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      // 同步更新声波视图文字
+      if (type === 'src')  document.getElementById('live-wv-src').textContent = text;
+      if (type === 'trs')  document.getElementById('live-wv-trs').textContent = text;
+    }
+    function startWaveBars(active) {
+      clearInterval(waveAnimTick);
+      const bars = document.querySelectorAll('.wv-bar');
+      waveAnimTick = setInterval(() => {
+        bars.forEach(b => {
+          const h = active ? Math.random() * 38 + 6 : Math.random() * 6 + 3;
+          b.style.height = h + 'px';
+          b.style.background = active ? 'var(--primary)' : 'rgba(255,255,255,0.15)';
+        });
+      }, 90);
+    }
+    function stopWaveBars() {
+      clearInterval(waveAnimTick);
+      document.querySelectorAll('.wv-bar').forEach(b => {
+        b.style.height = '4px';
+        b.style.background = 'rgba(255,255,255,0.15)';
+      });
+    }
+
+    // ── 视图切换 ──
+    function toggleLiveView() {
+      liveViewMode = liveViewMode === 'chat' ? 'wave' : 'chat';
+      document.getElementById('live-chat-view').style.display = liveViewMode === 'chat' ? '' : 'none';
+      document.getElementById('live-wave-view').style.display = liveViewMode === 'wave' ? 'flex' : 'none';
+      const icon = document.getElementById('live-view-btn').querySelector('svg');
+      // 切换图标
+      icon.innerHTML = liveViewMode === 'chat'
+        ? '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>'
+        : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+    }
+
+    // ── 语言方向切换 ──
+    function setLiveLang(src, tgt) {
+      liveSrcLang = src; liveTgtLang = tgt;
+      document.querySelectorAll('.lang-dir-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`lbtn-${src}-${tgt}`).classList.add('active');
+      if (liveRunning) { stopLiveSession(); setTimeout(startLiveSession, 400); }
+    }
+
+    // ── 开 / 关 Live ──
     function openLive() {
       document.getElementById('live-overlay').classList.add('active');
-      startWaveAnim();
+      document.getElementById('live-chat-view').style.display = '';
+      document.getElementById('live-wave-view').style.display = 'none';
+      liveViewMode = 'chat';
+      startLiveSession();
     }
     function closeLive() {
+      stopLiveSession();
       document.getElementById('live-overlay').classList.remove('active');
-      liveActive = false;
-      if (liveRecog) { try { liveRecog.stop(); } catch (e) { } liveRecog = null; }
-      window.speechSynthesis && window.speechSynthesis.cancel();
-      stopWaveAnim();
-      document.getElementById('live-orb').className = '';
-      setLiveState('idle');
     }
-    function startWaveAnim() {
-      const bars = document.querySelectorAll('.wave-bar');
-      waveTick = setInterval(() => {
-        bars.forEach(b => {
-          const h = liveActive ? Math.random() * 22 + 4 : Math.random() * 5 + 3;
-          b.style.height = h + 'px';
-          b.style.background = liveActive ? 'rgba(26,110,245,0.75)' : 'rgba(255,255,255,0.2)';
+
+    // ── 启动会话（AST 优先，降级到 Web Speech API）──
+    async function startLiveSession() {
+      if (liveRunning) return;
+      liveRunning = true;
+      setLiveStatus('正在启动…', '');
+      startWaveBars(false);
+
+      astApiKey = localStorage.getItem('ast_api_key') || '';
+      if (astApiKey) {
+        await startASTSession();
+      } else {
+        setLiveStatus('未配置 AST Key，使用浏览器识别（精度较低）', '');
+        startFallbackLive();
+      }
+    }
+
+    function stopLiveSession() {
+      liveRunning = false;
+      stopASTSession();
+      stopFallbackLive();
+      stopWaveBars();
+      setLiveStatus('已停止', '');
+    }
+
+    // ════════════════════════════════════
+    // ── AST 2.0 WebSocket 实现 ──
+    // ════════════════════════════════════
+    async function startASTSession() {
+      setLiveStatus('连接同声传译服务…', '');
+      try {
+        // 浏览器无法设置自定义 header，尝试 URL 参数传 key
+        const url = `${AST_WS_URL}?api_key=${encodeURIComponent(astApiKey)}&resource_id=${encodeURIComponent(AST_RESOURCE_ID)}`;
+        astWs = new WebSocket(url);
+        astWs.binaryType = 'arraybuffer';
+
+        const sessionId = genUUID();
+
+        astWs.onopen = () => {
+          // 发送 StartSession
+          astWs.send(astEncodeJson({
+            request_meta: { session_id: sessionId },
+            event: AST_EV.START,
+            source_audio: { format: 'wav', codec: 'raw', rate: 16000, bits: 16, channel: 1 },
+            request: { mode: 's2t', source_language: liveSrcLang, target_language: liveTgtLang }
+          }));
+          setLiveStatus('等待服务响应…', '');
+        };
+
+        astWs.onmessage = async (e) => {
+          const msg = astDecodeMsg(e.data);
+          if (!msg) return;
+          switch (msg.event) {
+            case AST_EV.SESSION_OK:
+              astReady = true;
+              setLiveStatus('🎤 正在聆听…', 'listening');
+              startWaveBars(true);
+              await startPCMCapture();
+              break;
+            case AST_EV.SRC_RESP:
+              if (msg.text) document.getElementById('live-wv-src').textContent = msg.text;
+              break;
+            case AST_EV.SRC_END:
+              if (msg.text) addLiveMsg(msg.text, 'src');
+              break;
+            case AST_EV.TRS_RESP:
+              if (msg.text) document.getElementById('live-wv-trs').textContent = msg.text;
+              break;
+            case AST_EV.TRS_END:
+              if (msg.text) {
+                addLiveMsg(msg.text, 'trs');
+                if (ttsOn) speak(msg.text);
+              }
+              break;
+            case AST_EV.MUTED:
+              setLiveStatus('🎤 等待说话…', 'listening');
+              break;
+            case AST_EV.FAIL:
+              setLiveStatus('⚠️ 会话失败：' + (msg.message || ''), 'error');
+              break;
+            case AST_EV.DONE:
+              setLiveStatus('会话结束', '');
+              break;
+          }
+        };
+
+        astWs.onerror = () => {
+          setLiveStatus('⚠️ AST 连接失败（可能需后端代理或检查 Key）', 'error');
+          // 自动降级到 Web Speech API
+          stopASTSession();
+          if (liveRunning) startFallbackLive();
+        };
+
+        astWs.onclose = () => { astReady = false; };
+
+      } catch (err) {
+        setLiveStatus('⚠️ 连接错误：' + err.message, 'error');
+        startFallbackLive();
+      }
+    }
+
+    async function startPCMCapture() {
+      try {
+        astPcmStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
         });
-      }, 110);
-    }
-    function stopWaveAnim() {
-      clearInterval(waveTick);
-      document.querySelectorAll('.wave-bar').forEach(b => { b.style.height = '4px'; b.style.background = 'rgba(255,255,255,0.2)'; });
-    }
-    function setLiveState(s) {
-      const orb = document.getElementById('live-orb');
-      const lbl = document.getElementById('live-state-label');
-      const sts = document.getElementById('live-status');
-      orb.className = '';
-      if (s === 'idle') { lbl.textContent = '点击麦克风开始'; sts.textContent = '准备就绪'; }
-      if (s === 'listening') { orb.classList.add('listening'); lbl.textContent = '正在聆听…'; sts.textContent = '说话中'; }
-      if (s === 'thinking') { lbl.textContent = '翻译中…'; sts.textContent = '处理中'; }
-      if (s === 'speaking') { orb.classList.add('speaking'); lbl.textContent = '正在播报…'; sts.textContent = '朗读中'; }
-    }
-    async function toggleLiveListen() {
-      if (liveActive) {
-        liveActive = false;
-        if (liveRecog) { try { liveRecog.stop(); } catch (e) { } }
-        window.speechSynthesis && window.speechSynthesis.cancel();
-        setLiveState('idle');
-        setLiveDirection('');
-        document.getElementById('live-translation').textContent = '点击球体重新开始';
-        return;
+        // 请求 16kHz AudioContext（部分浏览器可能不支持，会自动使用默认采样率）
+        astPcmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        const src = astPcmCtx.createMediaStreamSource(astPcmStream);
+        // 80ms @ 16kHz = 1280 samples
+        astPcmProc = astPcmCtx.createScriptProcessor(1280, 1, 1);
+        astPcmProc.onaudioprocess = (e) => {
+          if (!astWs || !astReady || astWs.readyState !== WebSocket.OPEN) return;
+          const f32 = e.inputBuffer.getChannelData(0);
+          // 如实际采样率≠16kHz，需要降采样
+          const ratio = astPcmCtx.sampleRate / 16000;
+          const outLen = Math.round(f32.length / ratio);
+          const i16 = new Int16Array(outLen);
+          for (let i = 0; i < outLen; i++) {
+            const srcIdx = Math.round(i * ratio);
+            i16[i] = Math.max(-32768, Math.min(32767, f32[srcIdx] * 32768));
+          }
+          // 发送 TaskRequest（纯 PCM 字节）
+          astWs.send(astEncodeAudio(i16.buffer));
+        };
+        src.connect(astPcmProc);
+        astPcmProc.connect(astPcmCtx.destination);
+      } catch (err) {
+        setLiveStatus('⚠️ 麦克风访问失败：' + err.message, 'error');
       }
+    }
+
+    function stopASTSession() {
+      astReady = false;
+      if (astPcmProc) { astPcmProc.disconnect(); astPcmProc = null; }
+      if (astPcmCtx)  { astPcmCtx.close().catch(() => {}); astPcmCtx = null; }
+      if (astPcmStream) { astPcmStream.getTracks().forEach(t => t.stop()); astPcmStream = null; }
+      if (astWs && astWs.readyState === WebSocket.OPEN) {
+        try { astWs.send(astEncodeJson({ event: AST_EV.FINISH })); } catch {}
+        astWs.close();
+      }
+      astWs = null;
+    }
+
+    // ════════════════════════════════════
+    // ── 降级方案：Web Speech API ──
+    //    识别语言根据方向选择，避免全部识别为中文
+    // ════════════════════════════════════
+    let liveRecog = null;
+    function startFallbackLive() {
       if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
+        setLiveStatus('⚠️ 浏览器不支持语音识别', 'error'); return;
       }
-      if (!await ensureMicPermission()) return;
-      liveActive = true;
-      // 从中文开始尝试；无声音时会自动交替切换
-      startLiveRound('zh-CN');
+      const recogLang = liveSrcLang === 'zh' ? 'zh-CN' : 'id-ID';
+      setLiveStatus(`🎤 聆听（${liveSrcLang === 'zh' ? '中文' : 'Indonesia'}）…`, 'listening');
+      startWaveBars(true);
+      fallbackRound(recogLang);
     }
-
-    function setLiveDirection(text) {
-      const el = document.getElementById('live-direction');
-      el.textContent = text;
-      el.classList.toggle('visible', !!text);
+    function stopFallbackLive() {
+      if (liveRecog) { try { liveRecog.abort(); } catch {} liveRecog = null; }
+      window.speechSynthesis && window.speechSynthesis.cancel();
     }
-
-    // lang 是本轮的识别语言；无声音时交替尝试另一语言
-    function startLiveRound(lang) {
-      if (!liveActive) return;
-      const otherLang = lang === 'zh-CN' ? 'id-ID' : 'zh-CN';
+    async function fallbackRound(lang) {
+      if (!liveRunning) return;
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       liveRecog = new SR();
-      liveRecog.lang = lang; liveRecog.interimResults = true; liveRecog.continuous = false;
-      setLiveState('listening');
-      setLiveDirection('');
+      liveRecog.lang = lang;
+      liveRecog.interimResults = true;
+      liveRecog.continuous = false;
       let finalText = '';
       liveRecog.onresult = e => {
-        let interim = '', final = '';
+        let interim = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interim += e.results[i][0].transcript;
         }
-        if (final) finalText = final;
-        document.getElementById('live-status').textContent = final || interim || '…';
+        document.getElementById('live-wv-src').textContent = finalText || interim;
       };
       liveRecog.onend = async () => {
-        if (!liveActive) return;
-        // 本轮没识别到内容 → 切换到另一语言重试
-        if (!finalText) { setTimeout(() => startLiveRound(otherLang), 200); return; }
-        // 根据实际识别内容判断语种，决定翻译方向
-        const srcIsZh = detectLang(finalText) === 'zh';
-        const ttsLang = srcIsZh ? 'id-ID' : 'zh-CN';
-        const nextLang = ttsLang; // 翻译完后监听对方语言
-        setLiveDirection(srcIsZh ? '中文 → Indonesia' : 'Indonesia → 中文');
-        setLiveState('thinking');
-        document.getElementById('live-translation').textContent = '翻译中…';
-        const translation = await translateOnce(finalText);
-        document.getElementById('live-translation').textContent = translation;
-        addBubble(finalText, 'out');
-        addBubble(translation, 'in');
-        setLiveState('speaking');
-        const u = new SpeechSynthesisUtterance(translation);
-        u.lang = ttsLang; u.rate = 1.0;
-        u.onend = () => { if (!liveActive) return; setTimeout(() => startLiveRound(nextLang), 500); };
-        window.speechSynthesis.speak(u);
+        if (!liveRunning) return;
+        if (!finalText) { setTimeout(() => fallbackRound(lang), 200); return; }
+        addLiveMsg(finalText, 'src');
+        setLiveStatus('翻译中…', 'thinking');
+        const trans = await translateOnce(finalText);
+        addLiveMsg(trans, 'trs');
+        if (ttsOn) speak(trans);
+        setLiveStatus(`🎤 聆听（${liveSrcLang === 'zh' ? '中文' : 'Indonesia'}）…`, 'listening');
+        setTimeout(() => fallbackRound(lang), 400);
       };
       liveRecog.onerror = e => {
-        if (e.error === 'no-speech' && liveActive) {
-          // 无声音 → 换语言重试，保持双语轮询
-          setTimeout(() => startLiveRound(otherLang), 300); return;
-        }
-        showSpeechError(e.error);
-        if (liveActive) { liveActive = false; setLiveState('idle'); }
+        if (e.error === 'no-speech' && liveRunning) { setTimeout(() => fallbackRound(lang), 300); return; }
+        if (liveRunning) showSpeechError(e.error);
       };
-      liveRecog.start();
+      try { liveRecog.start(); } catch {}
     }
   </script>
 </body>
