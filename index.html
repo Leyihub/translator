@@ -1527,21 +1527,24 @@
     }
 
     async function startPCMCapture() {
-      if (astPcmStream) return; // 已启动
+      if (astPcmStream) return;
       try {
         astPcmStream = await navigator.mediaDevices.getUserMedia({
           audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
         });
         astPcmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        // Autoplay policy: AudioContext starts suspended outside user-gesture — must resume explicitly
+        if (astPcmCtx.state === 'suspended') await astPcmCtx.resume();
+        const actualRate = astPcmCtx.sampleRate;
         const src = astPcmCtx.createMediaStreamSource(astPcmStream);
-        astPcmProc = astPcmCtx.createScriptProcessor(1280, 1, 1); // 80ms @16kHz
+        astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
         astPcmProc.onaudioprocess = e => {
           const f32 = e.inputBuffer.getChannelData(0);
-          const ratio = astPcmCtx.sampleRate / 16000;
+          const ratio = actualRate / 16000;
           const len = Math.round(f32.length / ratio);
           const i16 = new Int16Array(len);
           for (let i = 0; i < len; i++) {
-            i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i*ratio)] * 32768));
+            i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
           }
           const enc = astEncAudio(i16.buffer);
           if (astReadyA && astWsA?.readyState === WebSocket.OPEN) astWsA.send(enc);
