@@ -907,24 +907,31 @@
 
     let apiKey = '';
     let ttsOn = true;
-    let liveActive = false; // 保留旧变量兼容性
+    let liveActive = false;
     let waveTick;
     let typing = false;
 
+    // ── 默认配置（预置 Key，无需手动填写）──
+    const _DEF_TRANS_KEY  = 'ark-cf33cf52-7da4-4e6f-9e93-5d78e422644d-9ee6f';
+    const _DEF_PROXY_URL  = 'wss://ast-proxy.onrender.com';
+
     // ── INIT ──
     window.onload = () => {
-      const saved = localStorage.getItem('doubao_api_key');
-      if (saved) { apiKey = saved; } else { document.getElementById('key-modal').classList.add('active'); }
-      const savedAst = localStorage.getItem('ast_api_key');
-      const savedProxy = localStorage.getItem('ast_proxy_url');
-      if (savedProxy) { astApiKey = savedProxy; document.getElementById('proxy-url-input').value = savedProxy; }
+      // 优先用 localStorage 保存的值，否则用内置默认值
+      apiKey    = localStorage.getItem('doubao_api_key')  || _DEF_TRANS_KEY;
+      astApiKey = localStorage.getItem('ast_proxy_url')   || _DEF_PROXY_URL;
+      // 同步到 localStorage，方便后续读取
+      localStorage.setItem('doubao_api_key', apiKey);
+      localStorage.setItem('ast_proxy_url',  astApiKey);
+      // 回填设置弹窗
+      document.getElementById('key-input').value        = apiKey;
+      document.getElementById('proxy-url-input').value  = astApiKey;
+      // 已有内置 Key，不自动弹出设置框（长按 Logo 可手动打开）
     };
 
     function saveKey() {
       const val = document.getElementById('key-input').value.trim();
-      if (!val) { alert('请输入翻译 API Key'); return; }
-      apiKey = val;
-      localStorage.setItem('doubao_api_key', val);
+      if (val) { apiKey = val; localStorage.setItem('doubao_api_key', val); }
       const proxyVal = document.getElementById('proxy-url-input').value.trim();
       if (proxyVal) { astApiKey = proxyVal; localStorage.setItem('ast_proxy_url', proxyVal); }
       document.getElementById('key-modal').classList.remove('active');
