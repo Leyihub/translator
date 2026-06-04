@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="DSI翻译">
-  <title>DSI中印翻译小助手 · 06042005</title>
+  <title>DSI中印翻译小助手</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -24,6 +24,7 @@
       --header-h: 56px;
       --input-h: 96px;
       --radius: 18px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * {
@@ -125,7 +126,7 @@
       top: var(--header-h);
       left: 0;
       right: 0;
-      bottom: var(--input-h);
+      bottom: calc(var(--input-h) + var(--safe-bottom));
       overflow-y: auto;
       padding: 14px 14px 8px;
       display: flex;
@@ -249,71 +250,247 @@
     }
 
     /* ── LIVE OVERLAY ── */
-    /* ══ LIVE OVERLAY ══ */
     #live-overlay {
-      display: none; position: fixed; inset: 0; z-index: 200;
-      background: #000; flex-direction: column;
+      display: none;
+      position: fixed;
+      inset: 0;
+      height: 100dvh;
+      min-height: 100vh;
+      z-index: 200;
+      background: #0b0f1a;
+      flex-direction: column;
     }
     #live-overlay.active { display: flex; }
-    #live-chat-view {
-      flex: 1; overflow-y: auto; padding: 60px 20px 20px;
-      display: none; flex-direction: column; gap: 14px;
+
+    /* 顶部栏 */
+    #live-hdr {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
     }
-    #live-chat-view.show { display: flex; }
-    #live-chat-view::-webkit-scrollbar { width: 0; }
-    .live-msg { max-width: 88%; line-height: 1.55; font-size: 16px; color: rgba(255,255,255,0.92); }
-    .live-msg.src { align-self: flex-end; text-align: right; }
-    .live-msg.trs { align-self: flex-start; }
-    .live-msg .msg-meta { font-size: 11px; opacity: .35; margin-top: 3px; }
-    #live-controls {
-      flex-shrink: 0; display: flex; align-items: center;
-      justify-content: space-around; padding: 28px 32px 44px;
-      margin-top: auto;
+    #live-hdr-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: .3px;
     }
-    #lc-mic {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: rgba(40,40,40,0.9); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent; transition: background .2s;
+    #live-hdr-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      font-weight: 400;
+      margin-left: 6px;
     }
-    #lc-mic svg { width: 28px; height: 28px; stroke: rgba(255,255,255,0.85);
-      fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    #lc-mic.muted { background: rgba(255,77,79,0.25); }
-    #lc-mic.muted svg { stroke: #ff4d4f; }
-    #lc-mic:disabled { opacity: 0.35; }
-    #lc-glow {
-      width: 88px; height: 88px; border-radius: 50%; border: none; cursor: pointer;
-      background: radial-gradient(circle at 38% 32%, #c8e8ff, #5ab0ff 45%, #1a6ef5);
-      box-shadow: 0 0 32px rgba(90,176,255,0.55), 0 0 64px rgba(90,176,255,0.25);
-      -webkit-tap-highlight-color: transparent; transition: box-shadow .3s;
+    .live-icon-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    #lc-glow.listening { animation: glowPulse 2s ease-in-out infinite; }
-    #lc-glow.off { background: radial-gradient(circle at 38% 32%, #555, #333 60%, #222);
-      box-shadow: 0 0 12px rgba(0,0,0,0.6); }
-    #lc-glow:disabled { opacity: 0.3; }
-    @keyframes glowPulse {
-      0%,100% { box-shadow: 0 0 32px rgba(90,176,255,0.6), 0 0 64px rgba(90,176,255,0.28); }
-      50%      { box-shadow: 0 0 56px rgba(90,176,255,0.95), 0 0 100px rgba(90,176,255,0.45); }
+    .live-icon-btn svg {
+      width: 18px; height: 18px;
+      stroke: rgba(255,255,255,0.7);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    #lc-close {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: rgba(230,230,230,0.92); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent;
+    .live-icon-btn.active {
+      background: rgba(26,110,245,0.22);
+      outline: 1px solid rgba(26,110,245,0.5);
     }
-    #lc-close svg { width: 26px; height: 26px; stroke: #222;
-      fill: none; stroke-width: 2.5; stroke-linecap: round; }
-    #live-status-text {
-      position: absolute; top: 16px; left: 0; right: 0;
-      text-align: center; font-size: 12px; color: rgba(255,255,255,0.35);
-      pointer-events: none; z-index: 1;
+
+    /* 检测状态栏 */
+    #live-detect-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
+    #live-detect-icon { font-size: 15px; }
     #live-detect-label {
-      position: absolute; top: 34px; left: 0; right: 0;
-      text-align: center; font-size: 11px; color: rgba(255,255,255,0.22);
-      pointer-events: none; z-index: 1;
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 500;
     }
-    .wave-bar,.wv-bar { display: none; }
+
+    #live-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 12px 16px 8px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.02);
+    }
+    .live-tool-btn {
+      min-width: 78px;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.72);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .live-tool-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .live-tool-btn.active {
+      background: rgba(26,110,245,0.22);
+      border-color: rgba(26,110,245,0.45);
+      color: white;
+    }
+    .live-tool-btn.off {
+      background: rgba(255,77,79,0.14);
+      border-color: rgba(255,77,79,0.35);
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* 聊天视图 */
+    #live-chat-view {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #live-chat-view::-webkit-scrollbar { width: 3px; }
+    #live-chat-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+    .live-msg {
+      max-width: 85%;
+      border-radius: 14px;
+      padding: 10px 14px;
+      line-height: 1.5;
+    }
+    .live-msg.src {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      font-size: 15px;
+      border-bottom-right-radius: 4px;
+    }
+    .live-msg.trs {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.9);
+      font-size: 15px;
+      border-bottom-left-radius: 4px;
+    }
+    .live-msg .msg-meta {
+      font-size: 11px;
+      opacity: .5;
+      margin-top: 4px;
+    }
+
+    /* 声波视图 */
+    #live-wave-view {
+      flex: 1;
+      min-height: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    #live-wv-src {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      text-align: center;
+      max-width: 300px;
+      min-height: 32px;
+      line-height: 1.4;
+    }
+    #live-wv-trs {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      max-width: 300px;
+      min-height: 28px;
+      line-height: 1.4;
+    }
+    #live-wv-bars {
+      display: flex;
+      gap: 5px;
+      align-items: flex-end;
+      height: 48px;
+    }
+    .wv-bar {
+      width: 5px;
+      border-radius: 5px;
+      background: var(--primary);
+      transition: height 80ms;
+      min-height: 4px;
+    }
+
+    /* 底部状态栏 */
+    #live-status-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px calc(12px + var(--safe-bottom));
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: #0b0f1a;
+    }
+    #live-status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    #live-status-dot.listening { background: var(--live-green); animation: blink 1.2s infinite; }
+    #live-status-dot.thinking  { background: #f5a623; }
+    #live-status-dot.error     { background: var(--red); }
+    #live-status-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      flex: 1;
+    }
+
+    #live-overlay.captions-hidden #live-chat-view,
+    #live-overlay.captions-hidden #live-wv-src,
+    #live-overlay.captions-hidden #live-wv-trs {
+      display: none !important;
+    }
+    #live-overlay.captions-hidden #live-wave-view {
+      justify-content: center;
+    }
+
+    /* wave-bar (旧，保留兼容) */
+    .wave-bar { width: 4px; border-radius: 4px; background: rgba(255,255,255,.2); transition: height .1s; }
+
+    #live-direction.visible {
+      opacity: 1;
+    }
 
     /* INPUT AREA */
     #input-area {
@@ -321,12 +498,12 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: var(--input-h);
+      height: calc(var(--input-h) + var(--safe-bottom));
       background: var(--white);
       border-top: 1px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 10px var(--safe-bottom);
       gap: 8px;
     }
 
@@ -397,7 +574,7 @@
     }
 
     /* 双模式 input bar */
-    #input-area { padding: 0 12px; }
+    #input-area { padding: 0 12px var(--safe-bottom); }
 
     .input-bar {
       display: flex;
@@ -443,7 +620,7 @@
       position: fixed;
       left: 14px;
       right: 14px;
-      bottom: calc(var(--input-h) + 14px);
+      bottom: calc(var(--input-h) + var(--safe-bottom) + 14px);
       background: white;
       border-radius: 20px;
       padding: 14px 18px 16px;
@@ -710,27 +887,64 @@
     </div>
   </div>
 
-    <!-- LIVE OVERLAY -->
+  <!-- LIVE OVERLAY -->
   <div id="live-overlay">
-    <span id="live-status-text">正在连接…</span>
-    <span id="live-detect-label"></span>
+    <!-- 顶部栏 -->
+    <div id="live-hdr">
+      <button class="live-icon-btn" onclick="closeLive()" title="关闭">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div id="live-hdr-title">同声传译 2.0<span id="live-hdr-sub">豆包 AST</span></div>
+      <button class="live-icon-btn" id="live-view-icon-btn" onclick="toggleLiveView()" title="切换视图">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    </div>
+
+    <!-- 检测状态 -->
+    <div id="live-detect-bar">
+      <span id="live-detect-icon">🎤</span>
+      <span id="live-detect-label">自动识别语种 · 中文 ↔ Indonesia</span>
+    </div>
+
+    <div id="live-toolbar">
+      <button class="live-tool-btn active" id="live-mic-btn" onclick="toggleLiveMic()" title="麦克风开关">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span id="live-mic-btn-text">麦克风开</span>
+      </button>
+      <button class="live-tool-btn active" id="live-caption-btn" onclick="toggleLiveCaptions()" title="字幕开关">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg>
+        <span id="live-caption-btn-text">字幕开</span>
+      </button>
+      <button class="live-tool-btn active" id="live-view-btn" onclick="toggleLiveView()" title="切换视图">
+        <svg viewBox="0 0 24 24"><path d="M3 5h18v6H3z"/><path d="M3 13h8v6H3z"/><path d="M13 13h8v6h-8z"/></svg>
+        <span id="live-view-btn-text">字幕视图</span>
+      </button>
+    </div>
+
+    <!-- 聊天记录视图 -->
     <div id="live-chat-view"></div>
-    <div id="live-controls">
-      <button id="lc-mic" disabled onclick="toggleLiveMic()">
-        <svg viewBox="0 0 24 24">
-          <rect x="9" y="2" width="6" height="12" rx="3"/>
-          <path d="M5 10a7 7 0 0 0 14 0"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-      </button>
-      <button id="lc-glow" disabled onclick="toggleLiveSubtitle()"></button>
-      <button id="lc-close" onclick="closeLive()">
-        <svg viewBox="0 0 24 24">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+
+    <!-- 声波视图 -->
+    <div id="live-wave-view">
+      <div id="live-wv-src"></div>
+      <div id="live-wv-trs"></div>
+      <div id="live-wv-bars">
+        <div class="wv-bar" style="height:6px"></div>
+        <div class="wv-bar" style="height:14px"></div>
+        <div class="wv-bar" style="height:9px"></div>
+        <div class="wv-bar" style="height:22px"></div>
+        <div class="wv-bar" style="height:12px"></div>
+        <div class="wv-bar" style="height:18px"></div>
+        <div class="wv-bar" style="height:8px"></div>
+        <div class="wv-bar" style="height:16px"></div>
+        <div class="wv-bar" style="height:10px"></div>
+      </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div id="live-status-bar">
+      <div id="live-status-dot"></div>
+      <span id="live-status-text">正在启动...</span>
     </div>
   </div>
 
@@ -738,11 +952,21 @@
     // ── CONFIG ──
     const API_URL = 'https://ark.cn-beijing.volces.com/api/v3/responses';
     const MODEL = 'doubao-seed-translation-250915';
+    const ZH_LOCALE = 'zh-CN';
+    const ID_LOCALE = 'id-ID';
 
     // ── MIC HELPERS ──
     // 安卓 Chrome 必须先调用 getUserMedia 触发权限弹窗，否则 SpeechRecognition 静默失败
     async function ensureMicPermission() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // 老设备不支持则跳过
+      const secureLikeContext = window.isSecureContext || location.protocol === 'file:';
+      if (!secureLikeContext) {
+        alert('移动端麦克风采集需要在 HTTPS 页面中打开，当前页面不是安全环境。请改用 HTTPS 地址后重试。');
+        return false;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('当前浏览器环境不支持麦克风采集，请使用 Chrome 或 Safari，并通过 HTTPS 打开页面。');
+        return false;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(t => t.stop()); // 立即释放，只需要权限
@@ -775,16 +999,28 @@
     let liveActive = false;
     let waveTick;
     let typing = false;
+    let liveMicEnabled = true;
+    let liveCaptionsEnabled = true;
 
     // ── 默认配置（预置 Key，无需手动填写）──
     const _DEF_TRANS_KEY  = 'ark-cf33cf52-7da4-4e6f-9e93-5d78e422644d-9ee6f';
     const _DEF_PROXY_URL  = 'wss://ast-proxy.onrender.com';
 
+    function normalizeAstProxyUrl(url) {
+      if (!url) return '';
+      const val = url.trim();
+      if (!val) return '';
+      if (val.startsWith('wss://') || val.startsWith('ws://')) return val;
+      if (val.startsWith('https://')) return 'wss://' + val.slice('https://'.length);
+      if (val.startsWith('http://')) return 'ws://' + val.slice('http://'.length);
+      return val.includes('://') ? val : `wss://${val}`;
+    }
+
     // ── INIT ──
     window.onload = () => {
       // 优先用 localStorage 保存的值，否则用内置默认值
       apiKey    = localStorage.getItem('doubao_api_key')  || _DEF_TRANS_KEY;
-      astApiKey = localStorage.getItem('ast_proxy_url')   || _DEF_PROXY_URL;
+      astApiKey = normalizeAstProxyUrl(localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL);
       // 同步到 localStorage，方便后续读取
       localStorage.setItem('doubao_api_key', apiKey);
       localStorage.setItem('ast_proxy_url',  astApiKey);
@@ -797,8 +1033,12 @@
     function saveKey() {
       const val = document.getElementById('key-input').value.trim();
       if (val) { apiKey = val; localStorage.setItem('doubao_api_key', val); }
-      const proxyVal = document.getElementById('proxy-url-input').value.trim();
-      if (proxyVal) { astApiKey = proxyVal; localStorage.setItem('ast_proxy_url', proxyVal); }
+      const proxyVal = normalizeAstProxyUrl(document.getElementById('proxy-url-input').value.trim());
+      if (proxyVal) {
+        astApiKey = proxyVal;
+        document.getElementById('proxy-url-input').value = proxyVal;
+        localStorage.setItem('ast_proxy_url', proxyVal);
+      }
       document.getElementById('key-modal').classList.remove('active');
     }
 
@@ -838,11 +1078,24 @@
       document.getElementById('tts-label').textContent = ttsOn ? '自动朗读' : '朗读关';
     }
     function detectLang(text) { return /[\u4e00-\u9fff]/.test(text) ? 'zh' : 'id'; }
+    function getSpeechLocaleByLang(lang) { return lang === 'zh' ? ZH_LOCALE : ID_LOCALE; }
+    function getPreferredSpeechLocale() {
+      return (navigator.language || '').toLowerCase().startsWith('id') ? ID_LOCALE : ZH_LOCALE;
+    }
+    function getTranslateDirection(text) {
+      const source = detectLang(text);
+      return {
+        source,
+        target: source === 'zh' ? 'id' : 'zh',
+        sourceLabel: source === 'zh' ? '中文' : 'Indonesia',
+        targetLabel: source === 'zh' ? 'Indonesia' : '中文'
+      };
+    }
     function speak(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = detectLang(text) === 'zh' ? 'zh-CN' : 'id-ID';
+      u.lang = getSpeechLocaleByLang(detectLang(text));
       u.rate = 1.0;
       window.speechSynthesis.speak(u);
     }
@@ -952,7 +1205,7 @@
 
     // ── BUILD DOUBAO REQUEST BODY ──
     function buildDoubaoBody(text) {
-      const isZh = /[一-鿿]/.test(text);
+      const direction = getTranslateDirection(text);
       return {
         model: MODEL,
         input: [{
@@ -961,8 +1214,8 @@
             type: 'input_text',
             text: text,
             translation_options: {
-              source_language: isZh ? 'zh' : 'id',
-              target_language: isZh ? 'id' : 'zh'
+              source_language: direction.source,
+              target_language: direction.target
             }
           }]
         }]
@@ -1027,122 +1280,252 @@
           },
           body: JSON.stringify(buildDoubaoBody(text))
         });
+        if (!res.ok) return '翻译失败';
         const data = await res.json();
         return extractDoubaoText(data) || '翻译失败';
       } catch (e) { return '网络错误'; }
     }
 
     // ── PTT 按住说话 ──
+    let pttRecog = null;
     let pttActive = false;
+    let pttShouldSend = false;
     let pttFinalText = '';
+    let pttMode = '';
+    let pttAstSession = null;
 
     function showPttFloat() {
       document.getElementById('ptt-float-text').textContent = '';
       document.getElementById('ptt-float').classList.add('active');
       document.getElementById('ptt-btn').classList.add('recording');
     }
+
     function hidePttFloat() {
       document.getElementById('ptt-float').classList.remove('active');
       document.getElementById('ptt-btn').classList.remove('recording');
     }
 
-    // PTT：getUserMedia 在按钮事件（用户手势）内直接调用，绕过 SpeechRecognition 的谷歌依赖
-    async function pttStart(e) {
-      e.preventDefault();
-      if (pttActive) return;
+    function hasAstProxy() {
+      const proxy = normalizeAstProxyUrl(localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL);
+      return typeof proxy === 'string' && proxy.startsWith('wss://');
+    }
 
-      const proxyUrl = localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL;
+    async function startBrowserPtt() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      pttRecog = new SR();
+      pttRecog.lang = getPreferredSpeechLocale();
+      pttRecog.interimResults = true;
+      pttRecog.continuous = true;
+      pttRecog.onresult = ev => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) pttFinalText += ev.results[i][0].transcript;
+          else interim += ev.results[i][0].transcript;
+        }
+        document.getElementById('ptt-float-text').textContent = pttFinalText || interim;
+      };
+      pttRecog.onend = () => {
+        const text = pttFinalText.trim();
+        pttActive = false;
+        pttMode = '';
+        hidePttFloat();
+        if (pttShouldSend && text) {
+          addBubble(text, 'out');
+          streamTranslation(text);
+        }
+      };
+      pttRecog.onerror = ev => {
+        pttActive = false;
+        pttShouldSend = false;
+        pttMode = '';
+        hidePttFloat();
+        showSpeechError(ev.error);
+      };
+      pttRecog.start();
+    }
 
-      // 先获取麦克风 —— 此时仍在用户手势上下文 ✅
-      let stream;
-      try {
+    async function createPttAstSession() {
+      const proxyUrl = normalizeAstProxyUrl(localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL);
+      let stream = null;
+      let ctx = null;
+      let proc = null;
+      let wsA = null;
+      let wsB = null;
+      let readyA = false;
+      let readyB = false;
+      let closed = false;
+      let settled = false;
+      let settleTimer = null;
+      let connectedCount = 0;
+      let failedCount = 0;
+      let bestResult = null;
+
+      const cleanup = async () => {
+        clearTimeout(settleTimer);
+        if (proc) { try { proc.disconnect(); } catch {} proc = null; }
+        if (stream) { try { stream.getTracks().forEach(t => t.stop()); } catch {} stream = null; }
+        if (ctx) { try { await ctx.close(); } catch {} ctx = null; }
+        [wsA, wsB].forEach(ws => {
+          if (!ws) return;
+          try { ws.close(); } catch {}
+        });
+        wsA = null;
+        wsB = null;
+      };
+
+      const resolveAndClose = async result => {
+        if (settled) return result;
+        settled = true;
+        await cleanup();
+        return result;
+      };
+
+      const updateBestResult = (srcText, translatedText, sourceLang) => {
+        if (!srcText || !translatedText) return;
+        if (sourceLang === 'zh' && !isZh(srcText)) return;
+        if (sourceLang === 'id' && isZh(srcText)) return;
+        bestResult = { srcText: srcText.trim(), translatedText: translatedText.trim() };
+        document.getElementById('ptt-float-text').textContent = bestResult.srcText;
+      };
+
+      const startCapture = async () => {
+        if (stream || closed || connectedCount < 1) return;
         stream = await navigator.mediaDevices.getUserMedia({
           audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
         });
-      } catch (err) {
-        alert(err.name === 'NotAllowedError'
-          ? '麦克风权限被拒绝，请在浏览器地址栏点击锁形图标开启麦克风后刷新'
-          : '无法访问麦克风：' + err.message);
+        ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        if (ctx.state === 'suspended') await ctx.resume();
+        const actualRate = ctx.sampleRate;
+        const src = ctx.createMediaStreamSource(stream);
+        proc = ctx.createScriptProcessor(4096, 1, 1);
+        proc.onaudioprocess = e => {
+          const f32 = e.inputBuffer.getChannelData(0);
+          const ratio = actualRate / 16000;
+          const len = Math.round(f32.length / ratio);
+          const i16 = new Int16Array(len);
+          for (let i = 0; i < len; i++) {
+            i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
+          }
+          const enc = astEncAudio(i16.buffer);
+          if (readyA && wsA?.readyState === WebSocket.OPEN) wsA.send(enc);
+          if (readyB && wsB?.readyState === WebSocket.OPEN) wsB.send(enc);
+        };
+        src.connect(proc);
+        proc.connect(ctx.destination);
+      };
+
+      const onSideError = () => {
+        failedCount += 1;
+      };
+
+      wsA = buildASTWs(proxyUrl, 'zh', 'id', {
+        onReady: async () => {
+          readyA = true;
+          connectedCount += 1;
+          try { await startCapture(); } catch { onSideError(); }
+        },
+        onSrc: t => {
+          if (isZh(t)) document.getElementById('ptt-float-text').textContent = t;
+        },
+        onSrcEnd: () => {},
+        onTrsEnd: (src, trs) => { updateBestResult(src, trs, 'zh'); },
+        onError: onSideError
+      });
+
+      wsB = buildASTWs(proxyUrl, 'id', 'zh', {
+        onReady: async () => {
+          readyB = true;
+          connectedCount += 1;
+          try { await startCapture(); } catch { onSideError(); }
+        },
+        onSrc: t => {
+          if (!isZh(t)) document.getElementById('ptt-float-text').textContent = t;
+        },
+        onSrcEnd: () => {},
+        onTrsEnd: (src, trs) => { updateBestResult(src, trs, 'id'); },
+        onError: onSideError
+      });
+
+      return {
+        stop: async () => {
+          if (closed) return bestResult;
+          closed = true;
+          if (proc) { try { proc.disconnect(); } catch {} proc = null; }
+          if (stream) { try { stream.getTracks().forEach(t => t.stop()); } catch {} }
+          [wsA, wsB].forEach(ws => {
+            try {
+              if (ws?.readyState === WebSocket.OPEN) ws.send(astEncJson({ event: AST_EV.FINISH }));
+            } catch {}
+          });
+          return await new Promise(resolve => {
+            settleTimer = setTimeout(async () => {
+              const result = await resolveAndClose(bestResult);
+              resolve(result);
+            }, bestResult ? 400 : 1200);
+          });
+        },
+        failCount: () => failedCount
+      };
+    }
+
+    async function pttStart(e) {
+      e.preventDefault();
+      if (pttActive) return;
+      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && !hasAstProxy()) {
+        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）');
         return;
       }
-
-      pttActive = true;
+      const micReady = await ensureMicPermission();
+      if (!micReady) return;
+      pttActive = true; pttShouldSend = false; pttFinalText = '';
       showPttFloat();
 
-      // 建立 PCM 管道
-      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      await ctx.resume();
-      const rate = ctx.sampleRate;
-      const src = ctx.createMediaStreamSource(stream);
-      const proc = ctx.createScriptProcessor(4096, 1, 1);
-
-      // 连接 PTT 专用 AST 会话（若未就绪则提示等待）
-      let pttWsALocal = null, pttWsBLocal = null;
-      let pttReadyLocal = false;
-      let pttSrcText = '';
-
-      const makePttWs = (srcLang, tgtLang, onSrc, onTrsEnd) => {
-        const ws = new WebSocket(proxyUrl);
-        ws.binaryType = 'arraybuffer';
-        const sid = genUUID();
-        let lastSrc = '', ready = false;
-        const t = setTimeout(() => { if (!ready) ws.close(); }, 20000);
-        ws.onopen = () => ws.send(astEncJson({
-          request_meta: { session_id: sid, resource_id: AST_RES_ID },
-          event: AST_EV.START,
-          source_audio: { format: 'wav', codec: 'raw', rate: 16000, bits: 16, channel: 1 },
-          request: { mode: 's2t', source_language: srcLang, target_language: tgtLang }
-        }));
-        ws.onmessage = ev => {
-          const msg = astDecode(ev.data);
-          if (!msg) return;
-          if (msg.event === AST_EV.SESSION_OK) { clearTimeout(t); ready = true; pttReadyLocal = true; }
-          if (msg.event === AST_EV.SRC_RESP && msg.text) { lastSrc = msg.text; onSrc(msg.text); }
-          if (msg.event === AST_EV.TRS_END && msg.text) onTrsEnd(lastSrc, msg.text);
-        };
-        ws.onerror = () => clearTimeout(t);
-        return ws;
-      };
-
-      pttWsALocal = makePttWs('zh', 'id',
-        t => { document.getElementById('ptt-float-text').textContent = t; pttSrcText = t; },
-        (src, trs) => { if (isZh(src)) { addBubble(src, 'out'); addBubble(trs, 'in'); if (ttsOn) speak(trs); } }
-      );
-      pttWsBLocal = makePttWs('id', 'zh',
-        t => { if (!isZh(t)) { document.getElementById('ptt-float-text').textContent = t; pttSrcText = t; } },
-        (src, trs) => { if (!isZh(src)) { addBubble(src, 'out'); addBubble(trs, 'in'); if (ttsOn) speak(trs); } }
-      );
-
-      proc.onaudioprocess = ev => {
-        if (!pttActive || !pttReadyLocal) return;
-        const f32 = ev.inputBuffer.getChannelData(0);
-        const ratio = rate / 16000;
-        const len = Math.round(f32.length / ratio);
-        const i16 = new Int16Array(len);
-        for (let i = 0; i < len; i++) {
-          i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
+      try {
+        if (hasAstProxy()) {
+          pttMode = 'ast';
+          pttAstSession = await createPttAstSession();
+        } else {
+          pttMode = 'browser';
+          await startBrowserPtt();
         }
-        const enc = astEncAudio(i16.buffer);
-        if (pttWsALocal?.readyState === WebSocket.OPEN) pttWsALocal.send(enc);
-        if (pttWsBLocal?.readyState === WebSocket.OPEN) pttWsBLocal.send(enc);
-      };
-      src.connect(proc);
-      proc.connect(ctx.destination);
+      } catch (err) {
+        pttAstSession = null;
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+          pttMode = 'browser';
+          await startBrowserPtt();
+        } else {
+          pttActive = false;
+          pttMode = '';
+          hidePttFloat();
+          alert('语音识别启动失败：' + (err.message || '请检查麦克风与代理服务'));
+          return;
+        }
+      }
 
-      // 释放：停止 PCM，关闭临时会话
-      const onUp = () => {
+      // 手指/鼠标抬起时（无论在屏幕哪里）→ 发送
+      const onUp = async () => {
         document.removeEventListener('touchend', onUp, true);
         document.removeEventListener('mouseup', onUp, true);
-        pttActive = false;
-        hidePttFloat();
-        proc.disconnect(); ctx.close().catch(() => {});
-        stream.getTracks().forEach(t => t.stop());
-        [pttWsALocal, pttWsBLocal].forEach(ws => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            try { ws.send(astEncJson({ event: AST_EV.FINISH })); } catch {}
-            ws.close();
+        if (!pttActive) return;
+        pttShouldSend = true;
+        document.getElementById('ptt-float-text').textContent =
+          (document.getElementById('ptt-float-text').textContent || '') + ' ✓';
+        if (pttMode === 'ast' && pttAstSession) {
+          const result = await pttAstSession.stop();
+          pttAstSession = null;
+          pttMode = '';
+          pttActive = false;
+          hidePttFloat();
+          if (result?.srcText && result?.translatedText) {
+            addBubble(result.srcText, 'out');
+            addBubble(result.translatedText, 'in');
+            if (ttsOn) speak(result.translatedText);
+          } else if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+            alert('未识别到有效语音，请重试。');
           }
-        });
+          return;
+        }
+        if (pttRecog) { try { pttRecog.stop(); } catch (err) {} }
       };
       document.addEventListener('touchend', onUp, { capture: true, once: true });
       document.addEventListener('mouseup', onUp, { capture: true, once: true });
@@ -1150,17 +1533,14 @@
 
     function pttCancel() {
       if (!pttActive) return;
-      pttActive = false;
-      hidePttFloat();
-    }
-
-    // 共用：停止 Live 模式 PCM 捕获
-    function stopPcm(full) {
-      if (astPcmProc) { astPcmProc.disconnect(); astPcmProc = null; }
-      if (full) {
-        if (astPcmCtx) { astPcmCtx.close().catch(() => {}); astPcmCtx = null; }
-        if (astPcmStream) { astPcmStream.getTracks().forEach(t => t.stop()); astPcmStream = null; }
+      pttShouldSend = false; pttActive = false;
+      pttMode = '';
+      if (pttRecog) { try { pttRecog.abort(); } catch (err) {} }
+      if (pttAstSession) {
+        pttAstSession.stop().catch(() => {});
+        pttAstSession = null;
       }
+      hidePttFloat();
     }
 
     // ══════════════════════════════════════════
@@ -1180,12 +1560,10 @@
     let liveRunning  = false;
     let astApiKey    = '';  // 存代理 URL，如 wss://your-proxy.onrender.com
 
-    // PCM 捕获（Live 模式两个 AST Session 共享）
+    // PCM 捕获（两个 AST Session 共享同一路音频）
     let astPcmCtx = null, astPcmProc = null, astPcmStream = null;
-    let liveMicActive = false;
-
-    // PTT 模式独立 AST 会话
-    let pttWsA = null, pttWsB = null, pttReadyA = false, pttReadyB = false;
+    // 预热：在用户手势上下文中提前申请麦克风
+    let _prewarmStream = null, _prewarmCtx = null;
     // 两个并行 WebSocket：zh→id 和 id→zh
     let astWsA = null, astReadyA = false; // zh→id
     let astWsB = null, astReadyB = false; // id→zh
@@ -1229,9 +1607,10 @@
     }
 
     // ── UI 辅助 ──
-    function setLiveStatus(text) {
-      var el = document.getElementById('live-status-text');
-      if (el) el.textContent = text;
+    function setLiveStatus(text, dot) {
+      document.getElementById('live-status-text').textContent = text;
+      const el = document.getElementById('live-status-dot');
+      el.className = dot || '';
     }
     function setDetectLabel(text) {
       document.getElementById('live-detect-label').textContent = text;
@@ -1254,116 +1633,141 @@
 
       if (srcText) chat.appendChild(mkDiv(srcText, 'src', srcLangLabel));
       if (trsText) chat.appendChild(mkDiv(trsText, 'trs', trsLangLabel));
-
-      // 最多保留 5 条对话（每条 = src + trs 共 2 个 div，最多 10 个子元素）
-      while (chat.children.length > 10) chat.removeChild(chat.firstChild);
       chat.scrollTop = chat.scrollHeight;
+
+      if (srcText) document.getElementById('live-wv-src').textContent = srcText;
+      if (trsText) document.getElementById('live-wv-trs').textContent = trsText;
     }
 
     function startWaveBars(active) {
-      var g = document.getElementById('lc-glow');
-      if (g) { if (active) g.classList.add('listening'); else g.classList.remove('listening'); }
+      clearInterval(waveAnimTick);
+      waveAnimTick = setInterval(() => {
+        document.querySelectorAll('.wv-bar').forEach(b => {
+          const h = active ? Math.random() * 38 + 6 : Math.random() * 5 + 3;
+          b.style.height = h + 'px';
+          b.style.background = active ? 'var(--primary)' : 'rgba(255,255,255,0.15)';
+        });
+      }, 90);
     }
-    function stopWaveBars() { startWaveBars(false); }
+    function stopWaveBars() {
+      clearInterval(waveAnimTick);
+      document.querySelectorAll('.wv-bar').forEach(b => {
+        b.style.height = '4px';
+        b.style.background = 'rgba(255,255,255,0.15)';
+      });
+    }
+
+    function syncLiveToolbar() {
+      const micBtn = document.getElementById('live-mic-btn');
+      const micText = document.getElementById('live-mic-btn-text');
+      const captionBtn = document.getElementById('live-caption-btn');
+      const captionText = document.getElementById('live-caption-btn-text');
+      const viewBtn = document.getElementById('live-view-btn');
+      const viewText = document.getElementById('live-view-btn-text');
+      const iconViewBtn = document.getElementById('live-view-icon-btn');
+      if (micBtn && micText) {
+        micBtn.classList.toggle('active', liveMicEnabled);
+        micBtn.classList.toggle('off', !liveMicEnabled);
+        micText.textContent = liveMicEnabled ? '麦克风开' : '麦克风关';
+      }
+      if (captionBtn && captionText) {
+        captionBtn.classList.toggle('active', liveCaptionsEnabled);
+        captionBtn.classList.toggle('off', !liveCaptionsEnabled);
+        captionText.textContent = liveCaptionsEnabled ? '字幕开' : '字幕关';
+      }
+      if (viewBtn && viewText) {
+        viewBtn.classList.add('active');
+        viewText.textContent = liveViewMode === 'chat' ? '字幕视图' : '波形视图';
+      }
+      if (iconViewBtn) iconViewBtn.classList.toggle('active', liveViewMode === 'wave');
+      const overlay = document.getElementById('live-overlay');
+      if (overlay) overlay.classList.toggle('captions-hidden', !liveCaptionsEnabled);
+    }
 
     // ── 视图切换 ──
+    function toggleLiveView() {
+      liveViewMode = liveViewMode === 'chat' ? 'wave' : 'chat';
+      document.getElementById('live-chat-view').style.display  = liveViewMode==='chat' ? '' : 'none';
+      document.getElementById('live-wave-view').style.display  = liveViewMode==='wave' ? 'flex' : 'none';
+      syncLiveToolbar();
+    }
+
+    function toggleLiveCaptions() {
+      liveCaptionsEnabled = !liveCaptionsEnabled;
+      syncLiveToolbar();
+    }
+
+    async function toggleLiveMic() {
+      liveMicEnabled = !liveMicEnabled;
+      syncLiveToolbar();
+      if (!document.getElementById('live-overlay').classList.contains('active')) return;
+      if (liveMicEnabled) {
+        const micReady = await ensureMicPermission();
+        if (!micReady) {
+          liveMicEnabled = false;
+          syncLiveToolbar();
+          return;
+        }
+        await _prewarmMic();
+        await startLiveSession();
+      } else {
+        stopLiveSession();
+        setLiveStatus('麦克风已关闭', '');
+      }
+    }
+
     // ── 开 / 关 Live ──
-    function openLive() {
-      liveSubtitleOn = false;
+    async function openLive() {
+      const micReady = await ensureMicPermission();
+      if (!micReady) return;
+      liveMicEnabled = true;
+      liveCaptionsEnabled = true;
       document.getElementById('live-overlay').classList.add('active');
-      document.getElementById('live-chat-view').classList.remove('show');
-      startLiveSession();
+      document.getElementById('live-chat-view').style.display = '';
+      document.getElementById('live-wave-view').style.display = 'none';
+      liveViewMode = 'chat';
+      syncLiveToolbar();
+      await _prewarmMic();
+      await startLiveSession();
+    }
+
+    async function _prewarmMic() {
+      try {
+        _prewarmStream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        _prewarmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        await _prewarmCtx.resume();
+      } catch (e) {
+        setLiveStatus('⚠️ 麦克风权限被拒绝，请在浏览器设置中允许麦克风', 'error');
+      }
     }
     function closeLive() {
       stopLiveSession();
       document.getElementById('live-overlay').classList.remove('active');
     }
     async function startLiveSession() {
-      if (liveRunning) return;
+      if (liveRunning || !liveMicEnabled) return;
       liveRunning = true;
-      setLiveStatus('正在启动…');
+      setLiveStatus('正在启动…', '');
       startWaveBars(false);
-      astApiKey = localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL;
+      astApiKey = normalizeAstProxyUrl(localStorage.getItem('ast_proxy_url') || _DEF_PROXY_URL);
       if (astApiKey && astApiKey.startsWith('wss://')) {
-        setDetectLabel('豆包同声传译 2.0 · 按住下方按钮说话');
+        setDetectLabel('豆包同声传译 2.0 · 自动识别语种');
         await startASTDual();
       } else {
-        setDetectLabel('浏览器识别模式 · 自动识别语种');
+        setDetectLabel('浏览器识别模式 · 自动识别语种（配置代理可升级至 AST 2.0）');
         startFallbackLive();
       }
     }
     function stopLiveSession() {
       liveRunning = false;
-      liveMicActive = false;
-      liveSubtitleOn = false;
-      const mic = document.getElementById('lc-mic');
-      const glow = document.getElementById('lc-glow');
-      if (mic) { mic.disabled = true; mic.classList.remove('muted'); }
-      if (glow) { glow.disabled = true; glow.classList.remove('listening'); }
-      document.getElementById('live-chat-view').classList.remove('show');
       stopASTAll();
       stopFallbackLive();
       stopWaveBars();
-      setLiveStatus('已断开');
-      stopPcm(true);
-    }
-
-    // ── 麦克风开关（左按钮）──
-    async function toggleLiveMic() {
-      const mic = document.getElementById('lc-mic');
-
-      if (liveMicActive) {
-        liveMicActive = false;
-        mic.classList.add('muted');
-        setLiveStatus('麦克风已关闭');
-        startWaveBars(false);
-        return;
-      }
-
-      if (!astPcmStream) {
-        try {
-          astPcmStream = await navigator.mediaDevices.getUserMedia({
-            audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
-          });
-          astPcmCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-          await astPcmCtx.resume();
-          const rate = astPcmCtx.sampleRate;
-          const src = astPcmCtx.createMediaStreamSource(astPcmStream);
-          astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
-          astPcmProc.onaudioprocess = ev => {
-            if (!liveMicActive) return;
-            const f32 = ev.inputBuffer.getChannelData(0);
-            const ratio = rate / 16000;
-            const len = Math.round(f32.length / ratio);
-            const i16 = new Int16Array(len);
-            for (let i = 0; i < len; i++) {
-              i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
-            }
-            const enc = astEncAudio(i16.buffer);
-            if (astReadyA && astWsA?.readyState === WebSocket.OPEN) astWsA.send(enc);
-            if (astReadyB && astWsB?.readyState === WebSocket.OPEN) astWsB.send(enc);
-          };
-          src.connect(astPcmProc);
-          astPcmProc.connect(astPcmCtx.destination);
-        } catch (err) {
-          setLiveStatus('⚠️ 麦克风：' + err.message);
-          return;
-        }
-      }
-
-      liveMicActive = true;
-      mic.classList.remove('muted');
-      setLiveStatus('🎤 正在聆听…');
-      startWaveBars(true);
-    }
-
-    // ── 字幕开关（中间发光球）──
-    let liveSubtitleOn = false;
-    function toggleLiveSubtitle() {
-      liveSubtitleOn = !liveSubtitleOn;
-      const chat = document.getElementById('live-chat-view');
-      chat.classList.toggle('show', liveSubtitleOn);
-      if (liveSubtitleOn) chat.scrollTop = chat.scrollHeight;
+      setLiveStatus('已停止', '');
+      if (_prewarmStream) { _prewarmStream.getTracks().forEach(t => t.stop()); _prewarmStream = null; }
+      if (_prewarmCtx)    { _prewarmCtx.close().catch(() => {}); _prewarmCtx = null; }
     }
 
     // ════════════════════════════════════
@@ -1373,19 +1777,19 @@
     //    同一路 PCM 音频推送两边，根据返回内容判断哪边有效
     // ════════════════════════════════════
     async function startASTDual() {
-      setLiveStatus('正在连接同声传译服务…');
+      setLiveStatus('正在连接同声传译服务…', '');
       try {
         // Render 免费实例冷启动需 30-60 秒，先发 HTTP 唤醒，再建 WebSocket
         const httpUrl = astApiKey.replace(/^wss:\/\//, 'https://');
         try {
-          setLiveStatus('正在唤醒代理服务器（首次连接约需 30-60 秒）…');
+          setLiveStatus('正在唤醒代理服务器（首次连接约需 30-60 秒）…', '');
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 65000);
           await fetch(httpUrl, { signal: ctrl.signal });
           clearTimeout(t);
-          setLiveStatus('代理已就绪，正在建立传译连接…');
+          setLiveStatus('代理已就绪，正在建立传译连接…', '');
         } catch (_) {
-          setLiveStatus('正在连接同声传译服务…');
+          setLiveStatus('正在连接同声传译服务…', '');
         }
 
         // 使用后端代理 URL，代理负责添加 X-Api-Key 鉴权头
@@ -1395,7 +1799,7 @@
         let failedCount = 0;
 
         const onBothFailed = () => {
-          setLiveStatus('⚠️ AST 连接失败（服务器不支持 URL 参数鉴权，需后端代理）· 自动切换浏览器识别');
+          setLiveStatus('⚠️ AST 连接失败（服务器不支持 URL 参数鉴权，需后端代理）· 自动切换浏览器识别', 'error');
           stopASTAll();
           if (liveRunning) startFallbackLive();
         };
@@ -1404,18 +1808,16 @@
           onReady: async () => {
             astReadyA = true;
             connectedCount++;
-            if (connectedCount === 1) {
-              setLiveStatus('就绪，点击麦克风开始');
-              startWaveBars(false);
-              document.getElementById('lc-mic').disabled = false;
-              document.getElementById('lc-glow').disabled = false;
-              setDetectLabel('中文 ↔ Indonesia');
+            if (connectedCount === 1) { // 第一个就绪时启动 PCM
+              setLiveStatus('🎤 正在聆听（双语自动识别）…', 'listening');
+              startWaveBars(true);
+              await startPCMCapture();
             }
           },
-          onSrc: () => {},
-          onSrcEnd: () => {},
+          onSrc: t => document.getElementById('live-wv-src').textContent = t,
+          onSrcEnd: t => { /* 由 onTrsEnd 统一输出 */ },
           onTrsEnd: (src, trs) => {
-            if (!src || !isZh(src)) return;
+            if (!src || !isZh(src)) return; // A 负责中文输入
             addLiveMsg(src, trs, '中文', 'Indonesia');
             if (ttsOn) speak(trs);
             setDetectLabel('检测到：中文 → Indonesia');
@@ -1428,17 +1830,15 @@
             astReadyB = true;
             connectedCount++;
             if (connectedCount === 1) {
-              setLiveStatus('就绪，点击麦克风开始');
-              startWaveBars(false);
-              document.getElementById('lc-mic').disabled = false;
-              document.getElementById('lc-glow').disabled = false;
-              setDetectLabel('中文 ↔ Indonesia');
+              setLiveStatus('🎤 正在聆听（双语自动识别）…', 'listening');
+              startWaveBars(true);
+              await startPCMCapture();
             }
           },
-          onSrc: () => {},
-          onSrcEnd: () => {},
+          onSrc: t => { if (!isZh(t)) document.getElementById('live-wv-src').textContent = t; },
+          onSrcEnd: t => { /* 由 onTrsEnd 统一输出 */ },
           onTrsEnd: (src, trs) => {
-            if (!src || isZh(src)) return;
+            if (!src || isZh(src)) return; // B 负责印尼语输入
             addLiveMsg(src, trs, 'Indonesia', '中文');
             if (ttsOn) speak(trs);
             setDetectLabel('检测到：Indonesia → 中文');
@@ -1446,7 +1846,7 @@
           onError: () => { failedCount++; if (failedCount >= 2) onBothFailed(); }
         });
       } catch (err) {
-        setLiveStatus('⚠️ ' + err.message);
+        setLiveStatus('⚠️ ' + err.message, 'error');
         startFallbackLive();
       }
     }
@@ -1506,7 +1906,36 @@
       if (astPcmStream) { astPcmStream.getTracks().forEach(t => t.stop()); astPcmStream = null; }
     }
 
-    // startPCMCapture 已移至 livePttPress（手动触发）
+    async function startPCMCapture() {
+      if (astPcmStream) return;
+      try {
+        astPcmStream = _prewarmStream || await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        astPcmCtx = _prewarmCtx || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        _prewarmStream = null; _prewarmCtx = null;
+        if (astPcmCtx.state === 'suspended') await astPcmCtx.resume();
+        const actualRate = astPcmCtx.sampleRate;
+        const src = astPcmCtx.createMediaStreamSource(astPcmStream);
+        astPcmProc = astPcmCtx.createScriptProcessor(4096, 1, 1);
+        astPcmProc.onaudioprocess = e => {
+          const f32 = e.inputBuffer.getChannelData(0);
+          const ratio = actualRate / 16000;
+          const len = Math.round(f32.length / ratio);
+          const i16 = new Int16Array(len);
+          for (let i = 0; i < len; i++) {
+            i16[i] = Math.max(-32768, Math.min(32767, f32[Math.round(i * ratio)] * 32768));
+          }
+          const enc = astEncAudio(i16.buffer);
+          if (astReadyA && astWsA?.readyState === WebSocket.OPEN) astWsA.send(enc);
+          if (astReadyB && astWsB?.readyState === WebSocket.OPEN) astWsB.send(enc);
+        };
+        src.connect(astPcmProc);
+        astPcmProc.connect(astPcmCtx.destination);
+      } catch (err) {
+        setLiveStatus('⚠️ 麦克风失败：' + err.message, 'error');
+      }
+    }
 
     // ════════════════════════════════════
     // ── 降级：Web Speech API + 翻译 API ──
@@ -1514,15 +1943,15 @@
     //    识别到内容后根据 detectLang 判断翻译方向
     // ════════════════════════════════════
     let liveRecog = null;
-    let liveNextLang = 'zh-CN'; // 下一轮识别语言
+    let liveNextLang = getPreferredSpeechLocale(); // 下一轮识别语言
 
     function startFallbackLive() {
       if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        setLiveStatus('⚠️ 浏览器不支持语音识别，请使用 Chrome/Safari'); return;
+        setLiveStatus('⚠️ 浏览器不支持语音识别，请使用 Chrome/Safari', 'error'); return;
       }
-      setLiveStatus('🎤 正在聆听…');
+      setLiveStatus('🎤 正在聆听…', 'listening');
       startWaveBars(true);
-      liveNextLang = 'zh-CN';
+      liveNextLang = getPreferredSpeechLocale();
       fallbackRound();
     }
     function stopFallbackLive() {
@@ -1544,14 +1973,14 @@
           if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interim += e.results[i][0].transcript;
         }
-        
+        document.getElementById('live-wv-src').textContent = finalText || interim;
       };
 
       liveRecog.onend = async () => {
         if (!liveRunning) return;
         if (!finalText) {
           // 本轮无语音 → 切换语言重试
-          liveNextLang = liveNextLang === 'zh-CN' ? 'id-ID' : 'zh-CN';
+          liveNextLang = liveNextLang === ZH_LOCALE ? ID_LOCALE : ZH_LOCALE;
           setTimeout(fallbackRound, 250);
           return;
         }
@@ -1560,22 +1989,22 @@
         const srcLabel = detectedZh ? '中文' : 'Indonesia';
         const trsLabel = detectedZh ? 'Indonesia' : '中文';
         setDetectLabel(`检测到：${srcLabel} → ${trsLabel}`);
-        setLiveStatus('翻译中…');
+        setLiveStatus('翻译中…', 'thinking');
 
         const trans = await translateOnce(finalText);
         addLiveMsg(finalText, trans, srcLabel, trsLabel);
         if (ttsOn) speak(trans);
 
         // 下一轮听「对方的语言」
-        liveNextLang = detectedZh ? 'id-ID' : 'zh-CN';
-        setLiveStatus('🎤 正在聆听…');
+        liveNextLang = detectedZh ? ID_LOCALE : ZH_LOCALE;
+        setLiveStatus('🎤 正在聆听…', 'listening');
         setTimeout(fallbackRound, 400);
       };
 
       liveRecog.onerror = e => {
         if (!liveRunning) return;
         if (e.error === 'no-speech') {
-          liveNextLang = liveNextLang === 'zh-CN' ? 'id-ID' : 'zh-CN';
+          liveNextLang = liveNextLang === ZH_LOCALE ? ID_LOCALE : ZH_LOCALE;
           setTimeout(fallbackRound, 250);
           return;
         }
