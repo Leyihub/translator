@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="DSI翻译">
-  <title>DSI中印翻译小助手</title>
+  <title>DSI中印翻译小助手 · 06041928</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -1411,7 +1411,10 @@
               setDetectLabel('中文 ↔ Indonesia');
             }
           },
-          onSrc: t =>  // A 负责中文输入
+          onSrc: () => {},
+          onSrcEnd: () => {},
+          onTrsEnd: (src, trs) => {
+            if (!src || !isZh(src)) return;
             addLiveMsg(src, trs, '中文', 'Indonesia');
             if (ttsOn) speak(trs);
             setDetectLabel('检测到：中文 → Indonesia');
@@ -1431,10 +1434,10 @@
               setDetectLabel('中文 ↔ Indonesia');
             }
           },
-          onSrc: t => { if (!isZh(t))  },
-          onSrcEnd: t => { /* 由 onTrsEnd 统一输出 */ },
+          onSrc: () => {},
+          onSrcEnd: () => {},
           onTrsEnd: (src, trs) => {
-            if (!src || isZh(src)) return; // B 负责印尼语输入
+            if (!src || isZh(src)) return;
             addLiveMsg(src, trs, 'Indonesia', '中文');
             if (ttsOn) speak(trs);
             setDetectLabel('检测到：Indonesia → 中文');
