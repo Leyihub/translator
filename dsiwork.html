@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="DSI翻译">
+  <title>DSI中印翻译小助手</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --white: #ffffff;
+      --primary: #1a6ef5;
+      --primary-light: #e8f0fe;
+      --text-main: #1a1a2e;
+      --text-muted: #8a8fa8;
+      --border: #e8eaf0;
+      --live-green: #00c48c;
+      --red: #ff4d4f;
+      --header-h: 56px;
+      --input-h: 96px;
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Noto Sans SC', sans-serif;
+      color: var(--text-main);
+    }
+
+    /* HEADER */
+    #header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-h);
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
+      z-index: 100;
+      box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    #header-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #header-logo svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: white;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    #header-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -.2px;
+    }
+
+    #tts-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg);
+      user-select: none;
+      transition: all .2s;
+    }
+
+    #tts-toggle.on {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    #tts-toggle svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    #tts-label {
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    /* CHAT */
+    #chat {
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      right: 0;
+      bottom: var(--input-h);
+      overflow-y: auto;
+      padding: 14px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+
+    #chat::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    #chat::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 3px;
+    }
+
+    .hint-msg {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 20px;
+      padding: 5px 14px;
+      align-self: center;
+      margin: 4px 0;
+    }
+
+    .date-divider {
+      align-self: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 2px 0 4px;
+    }
+
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+    }
+
+    .bubble-wrap.out {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .bubble-wrap.in {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .bubble-wrap.out .bubble {
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 5px;
+    }
+
+    .bubble-wrap.in .bubble {
+      background: var(--white);
+      color: var(--text-main);
+      border-bottom-left-radius: 5px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+    }
+
+    .bubble-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      padding: 0 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tts-play {
+      cursor: pointer;
+      width: 22px;
+      height: 22px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .tts-play svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background: var(--primary);
+      vertical-align: -3px;
+      margin-left: 1px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    /* LIVE OVERLAY */
+    #live-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #0d1117;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #live-overlay.active {
+      display: flex;
+    }
+
+    #live-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #live-close svg {
+      width: 20px;
+      height: 20px;
+      stroke: white;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    #live-title {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    #live-status {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 6px;
+      min-height: 28px;
+      max-width: 280px;
+      text-align: center;
+    }
+
+    #live-translation {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 280px;
+      text-align: center;
+      min-height: 44px;
+      line-height: 1.5;
+    }
+
+    #live-orb-wrap {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin: 28px 0;
+    }
+
+    #live-orb {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #4a9eff, #1a6ef5 60%, #0d4fc4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    #live-orb.listening {
+      animation: orb-pulse 1.2s infinite;
+    }
+
+    #live-orb.speaking {
+      animation: orb-speak 0.8s infinite;
+    }
+
+    @keyframes orb-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(26, 110, 245, 0.5);
+        transform: scale(1);
+      }
+
+      50% {
+        box-shadow: 0 0 0 28px rgba(26, 110, 245, 0);
+        transform: scale(1.04);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(26, 110, 245, 0);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes orb-speak {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.07)
+      }
+    }
+
+    #live-orb svg {
+      width: 52px;
+      height: 52px;
+      stroke: white;
+      stroke-width: 1.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #live-wave {
+      display: flex;
+      gap: 5px;
+      align-items: flex-end;
+      height: 32px;
+    }
+
+    .wave-bar {
+      width: 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      transition: height .1s;
+    }
+
+    #live-state-label {
+      margin-top: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      height: 20px;
+    }
+
+    #live-direction {
+      margin-top: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--live-green);
+      height: 20px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    #live-direction.visible {
+      opacity: 1;
+    }
+
+    /* INPUT AREA */
+    #input-area {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--input-h);
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+    }
+
+    #input-box {
+      flex: 1;
+      min-height: 38px;
+      max-height: 90px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text-main);
+      background: var(--bg);
+      outline: none;
+      overflow-y: auto;
+      line-height: 1.4;
+      word-break: break-word;
+      cursor: text;
+    }
+
+    #input-box:empty:before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    #input-box:focus {
+      border-color: var(--primary);
+    }
+
+    .action-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      background: var(--bg);
+    }
+
+    .action-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-muted);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .action-btn:active {
+      transform: scale(0.92);
+    }
+
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-icon.hidden {
+      display: none;
+    }
+
+    /* 双模式 input bar */
+    #input-area { padding: 0 12px; }
+
+    .input-bar {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 10px;
+    }
+
+    #ptt-btn {
+      flex: 1;
+      height: 64px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 32px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: background .15s, border-color .15s, color .15s;
+      padding: 0 20px;
+    }
+
+    #ptt-btn:active,
+    #ptt-btn.recording {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    #right-btn.send-mode {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    #right-btn.send-mode svg { stroke: white; }
+
+    /* 浮动识别气泡（按住说话时显示在按钮上方） */
+    #ptt-float {
+      display: none;
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: calc(var(--input-h) + 14px);
+      background: white;
+      border-radius: 20px;
+      padding: 14px 18px 16px;
+      box-shadow: 0 6px 28px rgba(26,110,245,0.18), 0 1px 6px rgba(0,0,0,0.08);
+      border: 1.5px solid rgba(26,110,245,0.3);
+      z-index: 150;
+      animation: floatIn .18s ease;
+    }
+    #ptt-float.active { display: block; }
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #ptt-float-label {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #ptt-float-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1s infinite;
+    }
+    #ptt-float-text {
+      font-size: 17px;
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 26px;
+      word-break: break-word;
+    }
+    #ptt-float-text:empty::before {
+      content: '正在聆听…';
+      color: var(--text-muted);
+    }
+    /* 气泡下方三角箭头 */
+    #ptt-float::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 40px;
+      border: 9px solid transparent;
+      border-top-color: white;
+      border-bottom: 0;
+      filter: drop-shadow(0 2px 1px rgba(26,110,245,0.1));
+    }
+
+    /* 翻译气泡下的操作按钮 */
+    .bubble-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .bub-btn {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .bub-btn svg {
+      width: 11px; height: 11px;
+      stroke: var(--text-muted);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .bub-btn:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+    .bub-btn:active svg { stroke: var(--primary); }
+    .bub-btn.copied { background: #e6fff5; border-color: var(--live-green); color: var(--live-green); }
+    .back-trans-row {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 7px 10px;
+      margin-top: 6px;
+      line-height: 1.5;
+      max-width: 240px;
+      border-left: 2px solid var(--border);
+    }
+
+    /* API key modal */
+    #key-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    #key-modal.active {
+      display: flex;
+    }
+
+    #key-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 320px;
+      max-width: 90vw;
+    }
+
+    #key-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    #key-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    #key-input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: monospace;
+      margin-bottom: 12px;
+    }
+
+    #key-input:focus {
+      border-color: var(--primary);
+    }
+
+    #key-save {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- API KEY MODAL -->
+  <div id="key-modal">
+    <div id="key-card">
+      <h3>输入豆包 API Key</h3>
+      <p>请前往火山引擎控制台获取 API Key（格式：ark-xxxxxxxx-...），Key 仅保存在本地浏览器，不会上传。</p>
+      <input id="key-input" type="password" placeholder="ark-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
+      <button id="key-save" onclick="saveKey()">保存并开始使用</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div id="header">
+    <div id="header-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2L4 6v6c0 5.5 3.8 9.7 8 11 4.2-1.3 8-5.5 8-11V6L12 2z" />
+        <path d="M8 12l2.5 2.5L16 9" />
+      </svg>
+    </div>
+    <div id="header-title">DSI中印翻译小助手</div>
+    <div id="tts-toggle" class="on" onclick="toggleTTS()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      </svg>
+      <span id="tts-label">自动朗读</span>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat">
+    <div class="date-divider">今天</div>
+    <div class="hint-msg">🌐 自动识别中文↔印尼语，发送后自动朗读译文</div>
+  </div>
+
+  <!-- PTT 浮动识别气泡 -->
+  <div id="ptt-float">
+    <div id="ptt-float-label">
+      <span id="ptt-float-dot"></span>正在识别
+    </div>
+    <div id="ptt-float-text"></div>
+  </div>
+
+  <!-- INPUT AREA -->
+  <div id="input-area">
+    <!-- 语音模式（默认） -->
+    <div class="input-bar" id="voice-bar">
+      <button id="ptt-btn"
+        ontouchstart="pttStart(event);event.preventDefault();" ontouchcancel="pttCancel()"
+        onmousedown="pttStart(event)">按住说话</button>
+      <button class="action-btn" onclick="switchToText()" title="文字输入">
+        <svg viewBox="0 0 24 24">
+          <rect x="2" y="4" width="20" height="13" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+          <line x1="7" y1="9" x2="17" y2="9"/>
+          <line x1="7" y1="13" x2="13" y2="13"/>
+        </svg>
+      </button>
+      <button class="action-btn" onclick="openLive()" title="Live实时对话">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M6.3 6.3a8 8 0 0 0 0 11.4"/>
+          <path d="M17.7 6.3a8 8 0 0 1 0 11.4"/>
+          <path d="M3.5 3.5a14 14 0 0 0 0 17"/>
+          <path d="M20.5 3.5a14 14 0 0 1 0 17"/>
+        </svg>
+      </button>
+    </div>
+    <!-- 文字模式 -->
+    <div class="input-bar" id="text-bar" style="display:none">
+      <button class="action-btn" onclick="switchToVoice()" title="语音输入">
+        <svg viewBox="0 0 24 24">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <div id="input-box" contenteditable="true" role="textbox" aria-label="输入文字翻译" data-placeholder="输入文字翻译…"
+        onkeydown="handleKey(event)" oninput="onInputChange(this)"></div>
+      <button class="action-btn" id="right-btn" onclick="rightBtnClick()" title="发送 / Live">
+        <span class="btn-icon" id="live-icon-wrap">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M6.3 6.3a8 8 0 0 0 0 11.4"/>
+            <path d="M17.7 6.3a8 8 0 0 1 0 11.4"/>
+            <path d="M3.5 3.5a14 14 0 0 0 0 17"/>
+            <path d="M20.5 3.5a14 14 0 0 1 0 17"/>
+          </svg>
+        </span>
+        <span class="btn-icon hidden" id="send-icon-wrap">
+          <svg viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- LIVE OVERLAY -->
+  <div id="live-overlay">
+    <button id="live-close" onclick="closeLive()">
+      <svg viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+    <div id="live-title">LIVE 双语实时翻译</div>
+    <div id="live-status">准备就绪</div>
+    <div id="live-translation">点击下方球体开始对话</div>
+    <div id="live-orb-wrap">
+      <div id="live-orb" onclick="toggleLiveListen()">
+        <svg viewBox="0 0 24 24">
+          <rect x="9" y="2" width="6" height="12" rx="3" />
+          <path d="M5 10a7 7 0 0 0 14 0" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </div>
+    </div>
+    <div id="live-wave">
+      <div class="wave-bar" style="height:5px"></div>
+      <div class="wave-bar" style="height:10px"></div>
+      <div class="wave-bar" style="height:7px"></div>
+      <div class="wave-bar" style="height:16px"></div>
+      <div class="wave-bar" style="height:9px"></div>
+      <div class="wave-bar" style="height:13px"></div>
+      <div class="wave-bar" style="height:5px"></div>
+    </div>
+    <div id="live-state-label">点击麦克风开始</div>
+    <div id="live-direction"></div>
+  </div>
+
+  <script>
+    // ── CONFIG ──
+    const API_URL = 'https://ark.cn-beijing.volces.com/api/v3/responses';
+    const MODEL = 'doubao-seed-translation-250915';
+
+    // ── MIC HELPERS ──
+    // 安卓 Chrome 必须先调用 getUserMedia 触发权限弹窗，否则 SpeechRecognition 静默失败
+    // 用 sessionStorage 跨页面刷新缓存权限状态，避免重复弹窗
+    let micPermissionGranted = false;
+    try {
+      if (sessionStorage.getItem('dsi_mic_granted') === 'true') {
+        micPermissionGranted = true;
+      }
+    } catch (_) {}
+
+    async function ensureMicPermission() {
+      if (micPermissionGranted) return true;
+      // 先通过 Permissions API 检查（仅 Chrome/Edge 支持 microphone 权限查询）
+      if (navigator.permissions) {
+        try {
+          const status = await navigator.permissions.query({ name: 'microphone' });
+          if (status.state === 'granted') {
+            micPermissionGranted = true;
+            try { sessionStorage.setItem('dsi_mic_granted', 'true'); } catch (_) {}
+            return true;
+          }
+          if (status.state === 'denied') {
+            alert('麦克风权限被拒绝，请在浏览器设置中开启麦克风权限后刷新页面');
+            return false;
+          }
+        } catch (_) { /* Firefox 不支持 name:'microphone'，静默回退 */ }
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+        micPermissionGranted = true;
+        try { sessionStorage.setItem('dsi_mic_granted', 'true'); } catch (_) {}
+        return true;
+      } catch (e) {
+        const denied = e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError';
+        alert(denied
+          ? '麦克风权限被拒绝，请在浏览器地址栏点击锁形图标，手动开启麦克风权限后刷新页面'
+          : '无法访问麦克风：' + e.message);
+        return false;
+      }
+    }
+
+    // 将 SpeechRecognition 错误码转换为用户可读的提示
+    function showSpeechError(code) {
+      const map = {
+        'network': '语音识别网络错误\n\n安卓 Chrome 的语音识别需要连接谷歌服务器。\n如在中国大陆使用，请开启 VPN 后重试，或改用文字输入。',
+        'not-allowed': '麦克风权限被拒绝，请在浏览器设置中开启麦克风权限后刷新页面',
+        'audio-capture': '未检测到麦克风，请检查设备硬件或浏览器权限',
+        'service-not-allowed': '此浏览器不允许使用语音识别，请尝试 Chrome 或 Samsung Internet',
+        'aborted': null,
+        'no-speech': null,
+      };
+      const msg = map[code];
+      if (msg) alert(msg);
+    }
+
+    let apiKey = '';
+    let ttsOn = true;
+    let liveRecog = null;
+    let liveActive = false;
+    let lastSpeechLang = 'zh-CN'; // 记忆上次成功识别的语言
+    let waveTick;
+    let typing = false;
+
+    // ── INIT ──
+    window.onload = () => {
+      const saved = localStorage.getItem('doubao_api_key');
+      if (saved) {
+        apiKey = saved;
+      } else {
+        document.getElementById('key-modal').classList.add('active');
+      }
+    };
+
+    function saveKey() {
+      const val = document.getElementById('key-input').value.trim();
+      if (!val) { alert('请输入 API Key'); return; }
+      apiKey = val;
+      localStorage.setItem('doubao_api_key', val);
+      document.getElementById('key-modal').classList.remove('active');
+    }
+
+    // 长按 header 可重置 Key
+    document.addEventListener('DOMContentLoaded', () => {
+      let pressTimer;
+      const logo = document.getElementById('header-logo');
+      logo.addEventListener('touchstart', () => { pressTimer = setTimeout(() => { resetKey(); }, 1500); });
+      logo.addEventListener('touchend', () => clearTimeout(pressTimer));
+      logo.addEventListener('mousedown', () => { pressTimer = setTimeout(() => { resetKey(); }, 1500); });
+      logo.addEventListener('mouseup', () => clearTimeout(pressTimer));
+    });
+
+    function resetKey() {
+      if (!confirm('重置 API Key？')) return;
+      localStorage.removeItem('doubao_api_key');
+      apiKey = '';
+      document.getElementById('key-input').value = '';
+      document.getElementById('key-modal').classList.add('active');
+    }
+
+    // ── TTS ──
+    // 移动端 speechSynthesis 需在真实手势内先调用一次才能解锁，后续异步才能正常朗读
+    let speechUnlocked = false;
+    function unlockSpeech() {
+      if (speechUnlocked || !('speechSynthesis' in window)) return;
+      speechUnlocked = true;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+    document.addEventListener('touchstart', unlockSpeech, { once: true, passive: true });
+    document.addEventListener('mousedown', unlockSpeech, { once: true });
+
+    function toggleTTS() {
+      ttsOn = !ttsOn;
+      document.getElementById('tts-toggle').classList.toggle('on', ttsOn);
+      document.getElementById('tts-label').textContent = ttsOn ? '自动朗读' : '朗读关';
+    }
+    function detectLang(text) {
+      const value = (text || '').trim();
+      if (!value) return 'zh';
+      return /[\u4e00-\u9fff]/.test(value) ? 'zh' : 'id';
+    }
+    function detectSpeechLocale(text) {
+      return detectLang(text) === 'zh' ? 'zh-CN' : 'id-ID';
+    }
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = detectSpeechLocale(text);
+      u.rate = 1.0;
+      window.speechSynthesis.speak(u);
+    }
+
+    // ── INPUT MORPH ──
+    function onInputChange(el) {
+      const hasText = el.innerText.trim().length > 0;
+      if (hasText !== typing) { typing = hasText; setMorphState(typing); }
+    }
+    function setMorphState(isTyping) {
+      document.getElementById('live-icon-wrap').classList.toggle('hidden', isTyping);
+      document.getElementById('send-icon-wrap').classList.toggle('hidden', !isTyping);
+      document.getElementById('right-btn').classList.toggle('send-mode', isTyping);
+    }
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    }
+    function rightBtnClick() { if (typing) { sendMessage(); } else { openLive(); } }
+
+    // ── MODE SWITCH ──
+    function switchToVoice() {
+      document.getElementById('voice-bar').style.display = 'flex';
+      document.getElementById('text-bar').style.display = 'none';
+    }
+    function switchToText() {
+      document.getElementById('voice-bar').style.display = 'none';
+      document.getElementById('text-bar').style.display = 'flex';
+      setTimeout(() => document.getElementById('input-box').focus(), 50);
+    }
+
+    // ── BUBBLE ──
+    function addBubble(text, dir, streaming = false) {
+      const chat = document.getElementById('chat');
+      const wrap = document.createElement('div');
+      wrap.className = `bubble-wrap ${dir}`;
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      if (streaming) { b.innerHTML = '<span class="cursor-blink"></span>'; }
+      else { b.textContent = text; }
+      wrap.appendChild(b);
+
+      const meta = document.createElement('div');
+      meta.className = 'bubble-meta';
+      if (dir === 'in') {
+        // ▶ 朗读
+        const ttsBtn = document.createElement('div');
+        ttsBtn.className = 'tts-play'; ttsBtn.title = '朗读';
+        ttsBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+        ttsBtn.onclick = () => speak(b.textContent);
+        meta.appendChild(ttsBtn);
+
+        // ⧉ 复制（纯图标）
+        const copyBtn = document.createElement('div');
+        copyBtn.className = 'tts-play'; copyBtn.title = '复制';
+        const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        const doneIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        copyBtn.innerHTML = copyIcon;
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(b.textContent).then(() => {
+            copyBtn.innerHTML = doneIcon;
+            copyBtn.style.borderColor = 'var(--live-green)';
+            setTimeout(() => { copyBtn.innerHTML = copyIcon; copyBtn.style.borderColor = ''; }, 2000);
+          }).catch(() => alert('复制失败，请长按文字手动复制'));
+        };
+        meta.appendChild(copyBtn);
+
+        // ⇄ 回译（纯图标）
+        const verifyBtn = document.createElement('div');
+        verifyBtn.className = 'tts-play'; verifyBtn.title = '回译核对';
+        const verifyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>`;
+        verifyBtn.innerHTML = verifyIcon;
+        let backRow = null;
+        verifyBtn.onclick = async () => {
+          if (backRow) { backRow.remove(); backRow = null; verifyBtn.style.borderColor = ''; return; }
+          verifyBtn.style.opacity = '0.5';
+          const result = await translateOnce(b.textContent);
+          verifyBtn.style.opacity = '';
+          verifyBtn.style.borderColor = 'var(--primary)';
+          backRow = document.createElement('div');
+          backRow.className = 'back-trans-row';
+          backRow.textContent = result;
+          wrap.appendChild(backRow);
+          chat.scrollTop = chat.scrollHeight;
+        };
+        meta.appendChild(verifyBtn);
+      }
+      const t = document.createElement('span');
+      t.textContent = new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' });
+      meta.appendChild(t);
+      wrap.appendChild(meta);
+
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+      return b;
+    }
+
+    // ── SEND ──
+    async function sendMessage() {
+      const box = document.getElementById('input-box');
+      const text = box.innerText.trim();
+      if (!text) return;
+      box.innerText = '';
+      typing = false; setMorphState(false);
+      addBubble(text, 'out');
+      await streamTranslation(text);
+    }
+
+    // ── BUILD DOUBAO REQUEST BODY ──
+    function buildDoubaoBody(text) {
+      const isZh = /[\u4e00-\u9fff]/.test(text);
+      return {
+        model: MODEL,
+        input: [{
+          role: 'user',
+          content: [{
+            type: 'input_text',
+            text: text,
+            translation_options: {
+              source_language: isZh ? 'zh' : 'id',
+              target_language: isZh ? 'id' : 'zh'
+            }
+          }]
+        }]
+      };
+    }
+
+    // ── EXTRACT TEXT FROM DOUBAO RESPONSE ──
+    function extractDoubaoText(data) {
+      const output = data?.output;
+      if (Array.isArray(output)) {
+        for (const item of output) {
+          const content = item?.content;
+          if (Array.isArray(content)) {
+            for (const c of content) {
+              if (c?.type === 'output_text' && c?.text) return c.text;
+            }
+          }
+          if (typeof item?.content === 'string' && item.content) return item.content;
+        }
+      }
+      return null;
+    }
+
+    // ── TRANSLATE (Doubao responses API) ──
+    async function streamTranslation(userText) {
+      if (!apiKey) {
+        addBubble('⚠️ 请先设置 API Key（长按左上角图标可重置）', 'in');
+        return '';
+      }
+      const bubble = addBubble('', 'in', true);
+      let result = '';
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(buildDoubaoBody(userText))
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err);
+        }
+        const data = await res.json();
+        result = extractDoubaoText(data) || '翻译失败';
+        bubble.textContent = result;
+        document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+      } catch (err) {
+        result = '⚠️ 请求失败：' + (err.message || '网络错误');
+        bubble.textContent = result;
+      }
+      if (!result) { result = '…'; bubble.textContent = result; }
+      if (ttsOn && !result.startsWith('⚠️')) speak(result);
+      return result;
+    }
+
+    // ── NON-STREAM (for Live mode) ──
+    async function translateOnce(text) {
+      if (!apiKey) return '⚠️ 请先设置 API Key';
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(buildDoubaoBody(text))
+        });
+        const data = await res.json();
+        return extractDoubaoText(data) || '翻译失败';
+      } catch (e) { return '网络错误'; }
+    }
+
+    // ── PTT 按住说话（自动识别中文/印尼语） ──
+    let pttRecog = null;
+    let pttActive = false;
+    let pttShouldSend = false;
+    let pttFinalText = '';
+    let pttRetryLang = null;   // 重试时使用的语种（null=未重试）
+
+    function showPttFloat(lang) {
+      const label = lang === 'zh-CN' ? '中文' : 'Indonesia';
+      document.getElementById('ptt-float-text').textContent = '';
+      document.getElementById('ptt-float-label').innerHTML =
+        `<span id="ptt-float-dot"></span>正在识别 · ${label}`;
+      document.getElementById('ptt-float').classList.add('active');
+      document.getElementById('ptt-btn').classList.add('recording');
+    }
+
+    function hidePttFloat() {
+      document.getElementById('ptt-float').classList.remove('active');
+      document.getElementById('ptt-btn').classList.remove('recording');
+      document.getElementById('ptt-float-label').innerHTML =
+        '<span id="ptt-float-dot"></span>正在识别';
+    }
+
+    async function pttStart(e) {
+      e.preventDefault();
+      if (pttActive) return;
+      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
+      }
+      if (!await ensureMicPermission()) return;
+      pttActive = true; pttShouldSend = false; pttFinalText = ''; pttRetryLang = null;
+      startPttRecog('zh-CN');   // 先试中文
+    }
+
+    function startPttRecog(lang) {
+      if (pttRecog) { try { pttRecog.abort(); } catch (_) {} }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      pttRecog = new SR();
+      pttRecog.lang = lang;
+      pttRecog.interimResults = true;
+      pttRecog.continuous = true;
+
+      showPttFloat(lang);
+
+      pttRecog.onresult = ev => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) pttFinalText += ev.results[i][0].transcript;
+          else interim += ev.results[i][0].transcript;
+        }
+        document.getElementById('ptt-float-text').textContent = pttFinalText || interim;
+      };
+
+      pttRecog.onend = () => {
+        if (!pttActive) { hidePttFloat(); return; }
+        const text = pttFinalText.trim();
+        // 有识别结果 → 发送
+        if (text) {
+          pttActive = false; hidePttFloat();
+          if (pttShouldSend) {
+            addBubble(text, 'out');
+            streamTranslation(text);
+          }
+          return;
+        }
+        // 无识别结果，且用户仍在按住 → 切换语种重试（最多1次）
+        if (pttActive && !pttShouldSend) {
+          if (!pttRetryLang) {
+            // 第一次没识别到，切换到印尼语重试
+            pttRetryLang = 'id-ID';
+            pttFinalText = '';
+            startPttRecog('id-ID');
+            return;
+          } else {
+            // 两种语言都试了仍无结果 → 停止
+            pttActive = false; hidePttFloat();
+            return;
+          }
+        }
+        // 用户已松手但无内容 → 直接结束
+        pttActive = false; hidePttFloat();
+      };
+
+      pttRecog.onerror = ev => {
+        if (ev.error === 'no-speech' && pttActive && !pttShouldSend) {
+          // 等同于 onend 无结果，走同一套重试逻辑
+          if (!pttRetryLang) {
+            pttRetryLang = 'id-ID';
+            pttFinalText = '';
+            startPttRecog('id-ID');
+            return;
+          }
+        }
+        if (ev.error !== 'no-speech' && ev.error !== 'aborted') {
+          pttActive = false; pttShouldSend = false; hidePttFloat();
+          showSpeechError(ev.error);
+        }
+      };
+
+      pttRecog.start();
+
+      // 手指/鼠标抬起 → 标记发送
+      if (!window._pttUpBound) {
+        window._pttUpBound = true;
+        const onUp = () => {
+          if (!pttActive) return;
+          pttShouldSend = true;
+          const el = document.getElementById('ptt-float-text');
+          el.textContent = (el.textContent || '') + ' ✓';
+          if (pttRecog) { try { pttRecog.stop(); } catch (_) {} }
+        };
+        document.addEventListener('touchend', onUp, { capture: true, passive: true });
+        document.addEventListener('mouseup', onUp, { capture: true });
+      }
+    }
+
+    function pttCancel() {
+      if (!pttActive) return;
+      pttShouldSend = false; pttActive = false;
+      if (pttRecog) { try { pttRecog.abort(); } catch (_) {} }
+      hidePttFloat();
+    }
+
+    // ── LIVE MODE ──
+    function openLive() {
+      document.getElementById('live-overlay').classList.add('active');
+      startWaveAnim();
+    }
+    function closeLive() {
+      document.getElementById('live-overlay').classList.remove('active');
+      liveActive = false;
+      if (liveRecog) { try { liveRecog.stop(); } catch (e) { } liveRecog = null; }
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      stopWaveAnim();
+      document.getElementById('live-orb').className = '';
+      setLiveState('idle');
+    }
+    function startWaveAnim() {
+      const bars = document.querySelectorAll('.wave-bar');
+      waveTick = setInterval(() => {
+        bars.forEach(b => {
+          const h = liveActive ? Math.random() * 22 + 4 : Math.random() * 5 + 3;
+          b.style.height = h + 'px';
+          b.style.background = liveActive ? 'rgba(26,110,245,0.75)' : 'rgba(255,255,255,0.2)';
+        });
+      }, 110);
+    }
+    function stopWaveAnim() {
+      clearInterval(waveTick);
+      document.querySelectorAll('.wave-bar').forEach(b => { b.style.height = '4px'; b.style.background = 'rgba(255,255,255,0.2)'; });
+    }
+    function setLiveState(s) {
+      const orb = document.getElementById('live-orb');
+      const lbl = document.getElementById('live-state-label');
+      const sts = document.getElementById('live-status');
+      orb.className = '';
+      if (s === 'idle') { lbl.textContent = '点击麦克风开始'; sts.textContent = '准备就绪'; }
+      if (s === 'listening') { orb.classList.add('listening'); lbl.textContent = '正在聆听…'; sts.textContent = '说话中'; }
+      if (s === 'thinking') { lbl.textContent = '翻译中…'; sts.textContent = '处理中'; }
+      if (s === 'speaking') { orb.classList.add('speaking'); lbl.textContent = '正在播报…'; sts.textContent = '朗读中'; }
+    }
+    async function toggleLiveListen() {
+      if (liveActive) {
+        liveActive = false;
+        if (liveRecog) { try { liveRecog.stop(); } catch (e) { } }
+        window.speechSynthesis && window.speechSynthesis.cancel();
+        setLiveState('idle');
+        setLiveDirection('');
+        document.getElementById('live-translation').textContent = '点击球体重新开始';
+        return;
+      }
+      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        alert('您的浏览器不支持语音识别，请使用 Chrome（安卓）或 Safari（iPhone）'); return;
+      }
+      if (!await ensureMicPermission()) return;
+      liveActive = true;
+      // 从上次成功识别的语言开始；无声音时会自动交替切换
+      startLiveRound(lastSpeechLang);
+    }
+
+    function setLiveDirection(text) {
+      const el = document.getElementById('live-direction');
+      el.textContent = text;
+      el.classList.toggle('visible', !!text);
+    }
+
+    // lang 是本轮识别用的语种；无声音时交替尝试另一语言
+    function startLiveRound(lang) {
+      if (!liveActive) return;
+      const otherLang = lang === 'zh-CN' ? 'id-ID' : 'zh-CN';
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      liveRecog = new SR();
+      liveRecog.lang = lang; liveRecog.interimResults = true; liveRecog.continuous = false;
+      setLiveState('listening');
+      setLiveDirection('');
+      let finalText = '';
+      liveRecog.onresult = e => {
+        let interim = '', finalResult = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalResult += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
+        }
+        if (finalResult) finalText = finalResult;
+        document.getElementById('live-status').textContent = finalResult || interim || '…';
+      };
+      liveRecog.onend = async () => {
+        if (!liveActive) return;
+        // 本轮没识别到内容 → 切换到另一语言重试
+        if (!finalText) { setTimeout(() => startLiveRound(otherLang), 200); return; }
+        // 根据实际识别内容判断语种，决定翻译方向
+        const srcIsZh = detectLang(finalText) === 'zh';
+        const ttsLang = srcIsZh ? 'id-ID' : 'zh-CN';
+        const nextLang = ttsLang; // 翻译完后监听对方语言
+        setLiveDirection(srcIsZh ? '中文 → Indonesia' : 'Indonesia → 中文');
+        setLiveState('thinking');
+        document.getElementById('live-translation').textContent = '翻译中…';
+        const translation = await translateOnce(finalText);
+        document.getElementById('live-translation').textContent = translation;
+        addBubble(finalText, 'out');
+        addBubble(translation, 'in');
+        // 翻译失败时不朗读，直接开始下一轮（继续监听对方语言）
+        if (translation.startsWith('⚠️')) {
+          setTimeout(() => startLiveRound(nextLang), 500);
+          return;
+        }
+        setLiveState('speaking');
+        const u = new SpeechSynthesisUtterance(translation);
+        u.lang = ttsLang; u.rate = 1.0;
+        u.onend = () => { if (!liveActive) return; setTimeout(() => startLiveRound(nextLang), 500); };
+        window.speechSynthesis.speak(u);
+      };
+      liveRecog.onerror = e => {
+        if (e.error === 'no-speech' && liveActive) {
+          setTimeout(() => startLiveRound(otherLang), 300); return;
+        }
+        showSpeechError(e.error);
+        if (liveActive) { liveActive = false; setLiveState('idle'); }
+      };
+      liveRecog.start();
+    }
+  </script>
+</body>
+
+</html>
