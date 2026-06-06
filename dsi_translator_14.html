@@ -1075,6 +1075,9 @@
 
     // -- INIT --
     window.onload = () => {
+      // AST 预连接优化：进入页面立即建立后台链路并创建远程 Session，实现点击零等待
+      connectProxy().catch(err => console.log('后台预连接启动中...'));
+
       // Key 已内置，无需任何输入弹窗
       // 非安全上下文（file:// 直接打开）下，麦克风授权无法被记住 → 会反复弹窗，给出提示
       if (!window.isSecureContext) {
@@ -1085,6 +1088,13 @@
         document.getElementById('chat').appendChild(tip);
       }
     };
+
+    // 页面关闭时通知代理关闭 AST Session，实现资源回收
+    window.addEventListener('beforeunload', () => {
+      if (proxyWs && proxyWs.readyState === WebSocket.OPEN) {
+        proxyWs.send(JSON.stringify({ type: 'stop' }));
+      }
+    });
 
     // 长按 header 的彩蛋已移除（无需重置 Key）
     function resetKey() { }
@@ -1380,6 +1390,7 @@
             clearTimeout(connTimeout);
             proxyReady = true;
             startAudioPipeline();
+            connectionInFlight = null;
             resolve();
           } else if (msg.type === 'partial') {
             onASRPartial && onASRPartial(msg.text);
@@ -1498,6 +1509,7 @@
     // ── PTT 按住说话 ──────────────────────────────────────────
     let pttActive = false;
     let pttResultPending = false;
+    let pttReleased = false;
     let liveActive = false;
 
     function showPttFloat(label = '正在识别 · 中文 / Indonesia', barLabel = '正在听…') {
@@ -1516,16 +1528,18 @@
     async function pttStart(e) {
       e.preventDefault();
       if (pttActive) return;
-      if (!await ensureMicPermission()) return;
+
+      const micReady = await ensureMicPermission();
+      if (!micReady) return;
+      pttReleased = false;
 
       pttActive = true;
       pttResultPending = false;
-      showPttFloat('连接中… 请稍候', '连接中…');
 
       // ASR 结果回调：收到即完成本次 PTT
       // 修复 TTS：用 ASR 返回的 srcLang 直接决定 TTS 语言，避免短译文误判
       onASRResult = (lang, text) => {
-        if (!pttActive) return;
+        if (!pttActive || !pttReleased) return;
         pttActive = false; pttResultPending = false; audioGate = false;
         hidePttFloat();
         if (text && text.trim()) {
@@ -1543,8 +1557,15 @@
       };
 
       try {
-        await connectProxy();
-        showPttFloat(); // 更新标签为"正在识别"
+        // 性能优化：如果预连接已 Ready，则实现 100ms 内的即时响应
+        if (!proxyReady) {
+          showPttFloat('连接中… 请稍候', '连接中…');
+          await connectProxy();
+        }
+        // 确保音频采集节点已挂载到 micStream
+        if (!audioCtx) startAudioPipeline();
+
+        showPttFloat(); // 更新状态为“正在识别”
         audioGate = true;
       } catch (err) {
         pttActive = false;
@@ -1557,6 +1578,7 @@
         window._pttUpBound = true;
         const onUp = () => {
           if (!pttActive) return;
+          pttReleased = true;
           const t = document.getElementById('ptt-float-text');
           t.textContent = (t.textContent || '') + ' ✓';
           audioGate = false;
