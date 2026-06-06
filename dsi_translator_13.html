@@ -1288,7 +1288,7 @@
     }
 
     // -- TRANSLATE (Doubao responses API) --
-    async function streamTranslation(userText) {
+    async function streamTranslation(userText, srcLang) {
       if (!apiKey) {
         addBubble('⚠️ 请先设置 API Key（长按左上角图标可重置）', 'in');
         return '';
@@ -1296,7 +1296,8 @@
       const bubble = addBubble('', 'in', true);
       let result = '';
       try {
-        const detectedLang = await detectLanguageByAI(userText);
+        const detectedLang = srcLang;
+
         if (detectedLang !== 'zh' && detectedLang !== 'id') {
           throw new Error('UNSUPPORTED_LANGUAGE');
         }
@@ -1318,9 +1319,9 @@
       }
       if (!result) { result = '…'; bubble.textContent = result; }
       if (ttsOn && !result.startsWith('⚠️')) {
-        // 用 detectedLang 的反向确定 TTS 语言
-        const ttsLang = detectedLang === 'zh' ? 'id-ID'
-          : detectedLang === 'id' ? 'zh-CN'
+        // 用 srcLang 的反向确定 TTS 语言
+        const ttsLang = srcLang === 'zh' ? 'id-ID'
+          : srcLang === 'id' ? 'zh-CN'
             : detectSpeechLocale(result);   // 兜底：从译文推断
         const u = new SpeechSynthesisUtterance(result);
         u.lang = ttsLang; u.rate = 1.0;
@@ -1337,7 +1338,7 @@
       try {
         let detectedLang = optionalDetectedLang;
         if (!detectedLang) {
-          detectedLang = await detectLanguageByAI(text);
+          detectedLang = detectLang(text);
         }
 
         if (detectedLang !== 'zh' && detectedLang !== 'id') {

@@ -1,416 +1,159 @@
 <!DOCTYPE html>
 <html lang="zh">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DSI Live 实时翻译</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #000000;
-            --text-main: #ffffff;
-            --text-dim: #666666;
-            --live-green: #00c48c;
-            --header-h: 60px;
-            --footer-h: 120px;
-
-            /* 字体大小档位 */
-            --fs-src-0: 24px;
-            --fs-trs-0: 32px;
-            /* 标准 */
-            --fs-src-1: 36px;
-            --fs-trs-1: 48px;
-            /* 大 */
-            --fs-src-2: 48px;
-            --fs-trs-2: 64px;
-            /* 超大 */
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        html,
-        body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            background: var(--bg);
-            font-family: 'Noto Sans SC', sans-serif;
-            color: var(--text-main);
-        }
-
-        /* HEADER */
-        #header {
-            height: var(--header-h);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            border-bottom: 1px solid #1a1a1a;
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-back svg {
-            width: 24px;
-            height: 24px;
-            stroke: var(--text-main);
-            fill: none;
-            stroke-width: 2.5;
-        }
-
-        .title {
-            flex: 1;
-            text-align: center;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        .btn-font {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: 1.5px solid #333;
-            color: var(--text-main);
-            font-size: 16px;
-            font-weight: 700;
-        }
-
-        /* SUBTITLE AREA */
-        #subtitle-container {
-            height: calc(100% - var(--header-h) - var(--footer-h));
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding: 20px;
-            gap: 40px;
-            overflow: hidden;
-        }
-
-        .trans-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            transition: opacity 0.5s, transform 0.5s;
-        }
-
-        .trans-group.old-1 {
-            opacity: 0.4;
-            transform: scale(0.95);
-            transform-origin: left bottom;
-        }
-
-        .trans-group.old-2 {
-            opacity: 0.15;
-            transform: scale(0.9);
-            transform-origin: left bottom;
-        }
-
-        .source-text {
-            color: var(--text-dim);
-            font-weight: 500;
-            line-height: 1.3;
-        }
-
-        .target-text {
-            color: var(--text-main);
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        /* 方向指示器 */
-        #direction-hint {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--live-green);
-            color: #000;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 700;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 10;
-        }
-
-        #direction-hint.show {
-            opacity: 1;
-        }
-
-        /* FOOTER */
-        #footer {
-            height: var(--footer-h);
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            background: #0a0a0a;
-            border-top: 1px solid #1a1a1a;
-        }
-
-        .mic-status {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s, box-shadow 0.3s;
-        }
-
-        .mic-status.active {
-            background: var(--live-green);
-            box-shadow: 0 0 20px rgba(0, 196, 140, 0.4);
-        }
-
-        .mic-status svg {
-            width: 26px;
-            height: 26px;
-            stroke: #000;
-            fill: none;
-            stroke-width: 2;
-        }
-
-        #status-text {
-            flex: 1;
-            text-align: center;
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--text-dim);
-            letter-spacing: 1px;
-        }
-
-        .btn-close {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #222;
-        }
-
-        .btn-close svg {
-            width: 22px;
-            height: 22px;
-            stroke: #fff;
-            stroke-width: 3;
-        }
-
-        /* 字体档位控制 */
-        .f-size-0 .source-text {
-            font-size: var(--fs-src-0);
-        }
-
-        .f-size-0 .target-text {
-            font-size: var(--fs-trs-0);
-        }
-
-        .f-size-1 .source-text {
-            font-size: var(--fs-src-1);
-        }
-
-        .f-size-1 .target-text {
-            font-size: var(--fs-trs-1);
-        }
-
-        .f-size-2 .source-text {
-            font-size: var(--fs-src-2);
-        }
-
-        .f-size-2 .target-text {
-            font-size: var(--fs-trs-2);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DSI Live Fixed</title>
+<style>
+body{margin:0;background:#000;color:#fff;font-family:sans-serif}
+.header,.footer{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #222}
+.footer{position:fixed;bottom:0;width:100%;border-top:1px solid #222;border-bottom:none;background:#000}
+#subtitles{padding:20px 20px 90px}
+.item{margin:20px 0}
+.src{color:#888;font-size:28px}
+.dst{font-size:40px;font-weight:bold}
+#status{color:#0c8}
+</style>
 </head>
+<body>
+<div class="header">
+<button onclick="history.back()">←</button>
+<div>DSI 翻译助手 Live</div>
+<button onclick="cycleFont()">字</button>
+</div>
 
-<body class="f-size-0">
+<div id="subtitles"></div>
 
-    <div id="header">
-        <button class="btn-icon btn-back" onclick="history.back()">
-            <svg viewBox="0 0 24 24">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-        </button>
-        <div class="title">DSI 翻译助手</div>
-        <button class="btn-font" onclick="cycleFontSize()">字</button>
-    </div>
+<div class="footer">
+<div id="status">准备连接...</div>
+<button onclick="exitLive()">退出</button>
+</div>
 
-    <div id="direction-hint">中文 ⇄ 印尼语</div>
+<script>
+let proxyWs=null;
+let audioCtx=null;
+let micStream=null;
+let audioGate=false;
+let proxyReady=false;
 
-    <div id="subtitle-container">
-        <!-- 字幕组将在此动态生成 -->
-    </div>
+async function startLive(){
+ try{
+   updateStatus('申请麦克风...');
+   micStream=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true
+      }
+   });
 
-    <div id="footer">
-        <div id="mic-indicator" class="mic-status">
-            <svg viewBox="0 0 24 24">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-            </svg>
-        </div>
-        <div id="status-text">连接中...</div>
-        <button class="btn-icon btn-close" onclick="history.back()">
-            <svg viewBox="0 0 24 24">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-        </button>
-    </div>
+   initAudioPipeline();
+   await connectProxy();
+ }catch(e){
+   alert('启动失败:'+e.message);
+ }
+}
 
-    <script>
-        const API_URL = 'https://ark.cn-beijing.volces.com/api/v3/responses';
-        const MODEL = 'doubao-seed-translation-250915';
-        const ARK_TRANSLATE_KEY = 'ark-cf33cf52-7da4-4e6f-9e93-5d78e422644d-9ee6f';
-        const PROXY_WS_URL = 'wss://ast-proxy.onrender.com/ast';
+function updateStatus(t){document.getElementById('status').textContent=t;}
 
-        let proxyWs = null;
-        let audioCtx = null;
-        let proxyReady = false;
-        let audioGate = false;
-        let fontSizeIdx = 0;
-        let micStream = null;
+function connectProxy(){
+ return new Promise((resolve,reject)=>{
+   proxyWs=new WebSocket('wss://ast-proxy.onrender.com/ast');
 
-        function cycleFontSize() {
-            fontSizeIdx = (fontSizeIdx + 1) % 3;
-            document.body.className = `f-size-${fontSizeIdx}`;
-        }
+   proxyWs.onopen=()=>{
+      updateStatus('连接翻译服务...');
+      proxyWs.send(JSON.stringify({type:'start'}));
+   };
 
-        function setStatus(text, isListening = false) {
-            document.getElementById('status-text').textContent = text;
-            document.getElementById('mic-indicator').classList.toggle('active', isListening);
-        }
+   proxyWs.onmessage=(e)=>{
+      const msg=JSON.parse(e.data);
 
-        function showDirection(lang) {
-            const el = document.getElementById('direction-hint');
-            el.textContent = lang === 'zh' ? '中文 → 印尼语' : '印尼语 → 中文';
-            el.classList.add('show');
-            setTimeout(() => el.classList.remove('show'), 2000);
-        }
+      if(msg.type==='ready'){
+          proxyReady=true;
+          audioGate=true;
+          updateStatus('正在听...');
+          resolve();
+      }
 
-        function addSubtitlePair(source, target) {
-            const container = document.getElementById('subtitle-container');
-            const groups = container.querySelectorAll('.trans-group');
-            if (groups.length >= 1) groups[groups.length - 1].className = 'trans-group old-1';
-            if (groups.length >= 2) groups[groups.length - 2].className = 'trans-group old-2';
-            if (groups.length >= 3) groups[0].remove();
-            const group = document.createElement('div');
-            group.className = 'trans-group';
-            group.innerHTML = `<div class="source-text">${source}</div><div class="target-text">${target}</div>`;
-            container.appendChild(group);
-        }
+      if(msg.type==='asr'){
+          handleResult(msg.lang,msg.text);
+      }
+   };
 
-        async function startLive() {
-            try {
-                setStatus('连接中...');
-                const [stream] = await Promise.all([
-                    navigator.mediaDevices.getUserMedia({ audio: true }),
-                    connectProxy()
-                ]);
-                micStream = stream;
-                audioGate = true;
-                setStatus('准备就绪', false);
-                setTimeout(() => setStatus('正在听...', true), 500);
-            } catch (e) {
-                alert('无法启动实时模式: ' + e.message);
-                history.back();
-            }
-        }
+   proxyWs.onerror=reject;
+ });
+}
 
-        window.addEventListener('beforeunload', () => {
-            if (proxyWs && proxyWs.readyState === WebSocket.OPEN) {
-                proxyWs.send(JSON.stringify({ type: 'stop' }));
-            }
-        });
+function initAudioPipeline(){
+ if(audioCtx) return;
 
-        function connectProxy() {
-            return new Promise((resolve, reject) => {
-                proxyWs = new WebSocket(PROXY_WS_URL);
-                const timeout = setTimeout(() => reject(new Error('连接超时')), 10000);
-                proxyWs.onopen = () => proxyWs.send(JSON.stringify({ type: 'start' }));
-                proxyWs.onmessage = (e) => {
-                    const msg = JSON.parse(e.data);
-                    if (msg.type === 'ready') {
-                        clearTimeout(timeout);
-                        proxyReady = true;
-                        if (micStream) initAudioPipeline();
-                        resolve();
-                    } else if (msg.type === 'asr') {
-                        handleResult(msg.lang, msg.text);
-                    } else if (msg.type === 'partial') {
-                        setStatus(msg.text || '正在听...', true);
-                    }
-                };
-                proxyWs.onerror = reject;
-                proxyWs.onclose = () => { proxyReady = false; audioGate = false; };
-            });
-        }
+ audioCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
 
-        function initAudioPipeline() {
-            if (audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            const src = audioCtx.createMediaStreamSource(micStream);
-            const proc = audioCtx.createScriptProcessor(4096, 1, 1);
-            proc.onaudioprocess = e => {
-                if (!audioGate || !proxyReady) return;
-                const f32 = e.inputBuffer.getChannelData(0);
-                const i16 = new Int16Array(f32.length);
-                for (let k = 0; k < f32.length; k++) {
-                    const v = Math.max(-1, Math.min(1, f32[k]));
-                    i16[k] = v < 0 ? Math.ceil(v * 32768) : Math.floor(v * 32767);
-                }
-                proxyWs.send(i16.buffer);
-            };
-            src.connect(proc);
-            proc.connect(audioCtx.destination);
-        }
+ const src=audioCtx.createMediaStreamSource(micStream);
+ const proc=audioCtx.createScriptProcessor(4096,1,1);
 
-        async function handleResult(lang, text) {
-            if (!text.trim()) return;
-            audioGate = false;
-            setStatus('翻译中...');
-            showDirection(lang);
-            const translation = await translateOnce(text, lang);
-            addSubtitlePair(text, translation);
-            setStatus('正在播报...');
-            const u = new SpeechSynthesisUtterance(translation);
-            u.lang = lang === 'zh' ? 'id-ID' : 'zh-CN';
-            u.onend = () => { audioGate = true; setStatus('正在听...', true); };
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.resume();
-            window.speechSynthesis.speak(u);
-        }
+ proc.onaudioprocess=(e)=>{
+   if(!audioGate||!proxyReady) return;
 
-        async function translateOnce(text, lang) {
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ARK_TRANSLATE_KEY}` },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        input: [{ role: 'user', content: [{ type: 'input_text', text, translation_options: { source_language: lang, target_language: lang === 'zh' ? 'id' : 'zh' } }] }]
-                    })
-                });
-                const data = await res.json();
-                return data?.output?.[0]?.content?.[0]?.text || data?.output?.[0]?.content || '翻译失败';
-            } catch (e) { return '网络错误'; }
-        }
+   const f32=e.inputBuffer.getChannelData(0);
+   const i16=new Int16Array(f32.length);
 
-        window.onload = startLive;
-    </script>
+   for(let i=0;i<f32.length;i++){
+      const v=Math.max(-1,Math.min(1,f32[i]));
+      i16[i]=v<0?Math.ceil(v*32768):Math.floor(v*32767);
+   }
+
+   if(proxyWs&&proxyWs.readyState===1){
+      proxyWs.send(i16.buffer);
+   }
+ };
+
+ src.connect(proc);
+ proc.connect(audioCtx.destination);
+}
+
+async function handleResult(lang,text){
+ if(!text) return;
+
+ audioGate=false;
+ updateStatus('翻译中...');
+
+ const translation='[请接入现有 translateOnce()] '+text;
+
+ const wrap=document.createElement('div');
+ wrap.className='item';
+ wrap.innerHTML=`<div class="src">${text}</div><div class="dst">${translation}</div>`;
+ document.getElementById('subtitles').appendChild(wrap);
+
+ const u=new SpeechSynthesisUtterance(translation);
+ u.lang=lang==='zh'?'id-ID':'zh-CN';
+
+ u.onend=()=>{
+    audioGate=true;
+    updateStatus('正在听...');
+ };
+
+ speechSynthesis.cancel();
+ speechSynthesis.speak(u);
+}
+
+function exitLive(){
+ try{
+   audioGate=false;
+   if(proxyWs&&proxyWs.readyState===1){
+      proxyWs.send(JSON.stringify({type:'stop'}));
+      proxyWs.close();
+   }
+   if(audioCtx) audioCtx.close();
+   if(micStream) micStream.getTracks().forEach(t=>t.stop());
+ }catch(e){}
+ history.back();
+}
+
+function cycleFont(){}
+
+window.addEventListener('beforeunload',exitLive);
+window.onload=startLive;
+</script>
 </body>
-
 </html>
