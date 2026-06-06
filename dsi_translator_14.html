@@ -238,6 +238,41 @@
       box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
     }
 
+    /* 实时文字平滑淡入动画 */
+    .bubble.streaming-text {
+      animation: textFadeIn 0.3s ease-out;
+    }
+
+    @keyframes textFadeIn {
+      from {
+        opacity: 0.5;
+        transform: translateY(2px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .indicator-red {
+      background-color: var(--red);
+      box-shadow: 0 0 6px var(--red);
+    }
+
+    .indicator-green {
+      background-color: var(--live-green);
+      box-shadow: 0 0 6px var(--live-green);
+    }
+
     .bubble-meta {
       font-size: 11px;
       color: var(--text-muted);
@@ -973,7 +1008,10 @@
           <div class="bar-wave" style="height:14px"></div>
           <div class="bar-wave" style="height:6px"></div>
         </div>
-        <span id="bar-label">按住说话</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span id="status-indicator"></span>
+          <span id="bar-label">按住说话</span>
+        </div>
       </div>
 
       <!-- 右侧：键盘切换 / 取消 -->
@@ -1075,6 +1113,9 @@
 
     // -- INIT --
     window.onload = () => {
+      // 初始化底栏状态：显示红色连接中
+      setBarState('connecting', '连接中…');
+
       // AST 预连接优化：进入页面立即建立后台链路并创建远程 Session，实现点击零等待
       connectProxy().catch(err => console.log('后台预连接启动中...'));
 
@@ -1171,7 +1212,10 @@
       wrap.className = `bubble-wrap ${dir}`;
       const b = document.createElement('div');
       b.className = 'bubble';
-      if (streaming) { b.innerHTML = '<span class="cursor-blink"></span>'; }
+      if (streaming) {
+        b.classList.add('streaming-text');
+        b.innerHTML = '<span class="cursor-blink"></span>';
+      }
       else { b.textContent = text; }
       wrap.appendChild(b);
 
@@ -1363,6 +1407,7 @@
     let onASRResult = null; // (lang:'zh'|'id', text:string) => void
     let onASRPartial = null; // (text:string) => void
     let connectionInFlight = null; // 连接任务锁，防止重复创建 WS
+    let activePartialBubble = null; // 当前正在实时显示文字的气泡元素
 
     // 启动代理 WebSocket + 音频采集
     // 每次都等待 {type:'ready'} 再 resolve（不管 WS 是否已连接）
@@ -1391,6 +1436,8 @@
             proxyReady = true;
             startAudioPipeline();
             connectionInFlight = null;
+            // 连接完毕：切换为“按住说话”+绿色指示灯
+            setBarState('idle', '按住说话');
             resolve();
           } else if (msg.type === 'partial') {
             onASRPartial && onASRPartial(msg.text);
@@ -1464,18 +1511,25 @@
     let barWaveTick = null;
 
     function setBarState(state, label) {
-      // state: 'idle' | 'listening' | 'live' | 'thinking'
+      // state: 'idle' | 'listening' | 'live' | 'thinking' | 'connecting'
       const bars = document.querySelectorAll('.bar-wave');
       const lbl = document.getElementById('bar-label');
+      const indicator = document.getElementById('status-indicator');
       const pttBtn = document.getElementById('ptt-btn');
       const rightBtn = document.getElementById('bar-right-btn');
       const kbIcon = document.getElementById('bar-right-icon-kb');
       const xIcon = document.getElementById('bar-right-icon-x');
       clearInterval(barWaveTick);
 
-      lbl.textContent = label || '按住说话';
+      // 状态逻辑：未就绪或正在连接显示红色，就绪后显示绿色
+      if (indicator) {
+        indicator.className = (state === 'connecting' || !proxyReady) ? 'indicator-red' : 'indicator-green';
+      }
+      lbl.textContent = label || (proxyReady ? '按住说话' : '连接中…');
 
-      if (state === 'idle') {
+      if (state === 'connecting') {
+        bars.forEach((b, i) => { b.style.height = '4px'; b.style.background = 'var(--border)'; });
+      } else if (state === 'idle') {
         bars.forEach((b, i) => { b.style.height = [6, 14, 8, 18, 10, 14, 6][i] + 'px'; b.style.background = 'var(--border)'; });
         pttBtn.classList.remove('recording', 'live-active');
         rightBtn.classList.remove('cancel-mode');
@@ -1509,8 +1563,10 @@
     // ── PTT 按住说话 ──────────────────────────────────────────
     let pttActive = false;
     let pttResultPending = false;
+    let pttFinalData = null; // 暂存提前到达的 ASR 结果
     let pttReleased = false;
     let liveActive = false;
+    let pttBubble = null; // 专门用于 PTT 的气泡引用
 
     function showPttFloat(label = '正在识别 · 中文 / Indonesia', barLabel = '正在听…') {
       document.getElementById('ptt-float-text').textContent = '';
@@ -1518,6 +1574,36 @@
         `<span id="ptt-float-dot"></span>${label}`;
       document.getElementById('ptt-float').classList.add('active');
       setBarState('listening', barLabel);
+    }
+
+    // 统一处理 PTT 结束逻辑
+    function finalizePtt() {
+      if (!pttActive || !pttFinalData) return;
+      
+      const { lang, text } = pttFinalData;
+      pttActive = false;
+      pttResultPending = false;
+      pttFinalData = null;
+      audioGate = false;
+      hidePttFloat();
+
+      if (text && text.trim()) {
+        if (pttBubble) {
+          pttBubble.classList.remove('streaming-text');
+          pttBubble.textContent = text; // 移除光标，固化文字
+        } else {
+          pttBubble = addBubble(text, 'out');
+        }
+        
+        if (lang !== 'zh' && lang !== 'id') {
+          addBubble('提示：仅支持中文和印尼语', 'in');
+        } else {
+          streamTranslation(text, lang);
+        }
+      } else {
+        if (pttBubble) pttBubble.closest('.bubble-wrap').remove();
+      }
+      pttBubble = null;
     }
 
     function hidePttFloat() {
@@ -1533,27 +1619,43 @@
       if (!micReady) return;
       pttReleased = false;
 
+      // 立即创建实时气泡
+      pttBubble = addBubble('', 'out', true);
+
       pttActive = true;
       pttResultPending = false;
 
       // ASR 结果回调：收到即完成本次 PTT
       // 修复 TTS：用 ASR 返回的 srcLang 直接决定 TTS 语言，避免短译文误判
       onASRResult = (lang, text) => {
-        if (!pttActive || !pttReleased) return;
+        if (!pttActive || !pttReleased) {
+          if (pttBubble) pttBubble.closest('.bubble-wrap').remove();
+          return;
+        }
         pttActive = false; pttResultPending = false; audioGate = false;
         hidePttFloat();
         if (text && text.trim()) {
-          addBubble(text, 'out');
+          if (pttBubble) pttBubble.textContent = text;
+          else addBubble(text, 'out');
+
           // Block unsupported languages identified by the ASR engine
           if (lang !== 'zh' && lang !== 'id') {
             addBubble('提示：仅支持中文和印尼语', 'in');
             return;
           }
           streamTranslation(text, lang);   // ← 传入 srcLang
+        } else {
+          if (pttBubble) pttBubble.closest('.bubble-wrap').remove();
         }
+        pttBubble = null;
       };
       onASRPartial = text => {
         document.getElementById('ptt-float-text').textContent = text;
+        if (pttBubble) {
+          if (pttBubble.textContent !== text) pttBubble.classList.add('streaming-text');
+          pttBubble.textContent = text;
+          document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+        }
       };
 
       try {
@@ -1570,6 +1672,7 @@
       } catch (err) {
         pttActive = false;
         hidePttFloat();
+        if (pttBubble) pttBubble.closest('.bubble-wrap').remove();
         alert('AST 连接失败：' + err.message);
       }
 
@@ -1596,6 +1699,10 @@
     function pttCancel() {
       if (!pttActive) return;
       pttActive = false; pttResultPending = false; audioGate = false;
+      if (pttBubble) {
+        pttBubble.closest('.bubble-wrap').remove();
+        pttBubble = null;
+      }
       hidePttFloat();
       // 优化：取消时不发送 stop，保持后端 AST 会话活跃以备下次使用
     }
@@ -1617,11 +1724,18 @@
       setBarState('live', '正在聆听…');
       updateLiveUI('正在聆听…', '请直接说话');
 
+      activePartialBubble = null;
+
       onASRResult = (lang, text) => {
         if (!liveActive) return;
         handleLiveResult(lang, text);
       };
       onASRPartial = text => {
+        if (text && text.trim()) {
+          if (!activePartialBubble) activePartialBubble = addBubble('', 'out', true);
+          activePartialBubble.textContent = text;
+          document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+        }
         updateLiveUI(text || '正在聆听…');
       };
 
@@ -1660,10 +1774,21 @@
 
     // 处理 Live 每条 ASR 结果：翻译 → TTS → 继续聆听
     async function handleLiveResult(lang, text) {
-      if (!liveActive || !text.trim()) return;
+      if (!liveActive || !text.trim()) {
+        if (activePartialBubble) activePartialBubble.closest('.bubble-wrap').remove();
+        activePartialBubble = null;
+        return;
+      }
+
+      // 将实时气泡转正
+      if (activePartialBubble) {
+        activePartialBubble.textContent = text;
+      } else {
+        addBubble(text, 'out');
+      }
+      activePartialBubble = null; // 重置引用，下一句会创建新气泡
 
       if (lang !== 'zh' && lang !== 'id') {
-        addBubble(text, 'out');
         addBubble('提示：仅支持中文和印尼语', 'in');
         if (liveActive) { setBarState('live', '正在聆听…'); audioGate = true; }
         return;
@@ -1672,7 +1797,6 @@
       audioGate = false;
       setBarState('thinking', '处理中…');
       updateLiveUI(text, '翻译中…');
-      addBubble(text, 'out');
 
       const translation = await translateOnce(text);
       updateLiveUI(text, translation);
