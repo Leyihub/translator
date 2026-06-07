@@ -1407,6 +1407,7 @@
     let onASRResult = null; // (lang:'zh'|'id', text:string) => void
     let onASRPartial = null; // (text:string) => void
     let connectionInFlight = null; // 连接任务锁，防止重复创建 WS
+    let pttFinalData = null; // 暂存提前到达的 ASR 最终结果
     let activePartialBubble = null; // 当前正在实时显示文字的气泡元素
 
     // 启动代理 WebSocket + 音频采集
@@ -1466,9 +1467,10 @@
           proxyWs.onmessage = handleMsg;
           proxyWs.onerror = () => {
             clearTimeout(connTimeout);
+            connectionInFlight = null;
             reject(new Error('代理 WebSocket 连接失败，请检查网络或代理服务状态'));
           };
-          proxyWs.onclose = () => { proxyReady = false; audioGate = false; };
+          proxyWs.onclose = () => { proxyReady = false; audioGate = false; connectionInFlight = null; };
         }
       });
       return connectionInFlight;
@@ -1564,6 +1566,7 @@
     let pttActive = false;
     let pttResultPending = false;
     let pttFinalData = null; // 暂存提前到达的 ASR 结果
+    let pttBubble = null; // 专门用于 PTT 的气泡引用
     let pttReleased = false;
     let liveActive = false;
     let pttBubble = null; // 专门用于 PTT 的气泡引用
@@ -1579,12 +1582,12 @@
     // 统一处理 PTT 结束逻辑
     function finalizePtt() {
       if (!pttActive || !pttFinalData) return;
-      
+
       const { lang, text } = pttFinalData;
       pttActive = false;
       pttResultPending = false;
       pttFinalData = null;
-      audioGate = false;
+      audioGate = false; // 停止音频推送
       hidePttFloat();
 
       if (text && text.trim()) {
@@ -1594,7 +1597,7 @@
         } else {
           pttBubble = addBubble(text, 'out');
         }
-        
+
         if (lang !== 'zh' && lang !== 'id') {
           addBubble('提示：仅支持中文和印尼语', 'in');
         } else {
@@ -1620,7 +1623,7 @@
       pttReleased = false;
 
       // 立即创建实时气泡
-      pttBubble = addBubble('', 'out', true);
+      pttBubble = addBubble('', 'out', 'streaming');
 
       pttActive = true;
       pttResultPending = false;
@@ -1700,7 +1703,7 @@
       if (!pttActive) return;
       pttActive = false; pttResultPending = false; audioGate = false;
       if (pttBubble) {
-        pttBubble.closest('.bubble-wrap').remove();
+        pttBubble.closest('.bubble-wrap').remove(); // 移除未完成的气泡
         pttBubble = null;
       }
       hidePttFloat();
@@ -1733,7 +1736,7 @@
       onASRPartial = text => {
         if (text && text.trim()) {
           if (!activePartialBubble) activePartialBubble = addBubble('', 'out', true);
-          activePartialBubble.textContent = text;
+          activePartialBubble.innerHTML = (text || '') + '<span class="cursor-blink"></span>'; // Live 模式也显示实时字幕
           document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
         }
         updateLiveUI(text || '正在聆听…');
@@ -1783,7 +1786,7 @@
       // 将实时气泡转正
       if (activePartialBubble) {
         activePartialBubble.textContent = text;
-      } else {
+      } else { // 如果没有实时气泡，则创建新的
         addBubble(text, 'out');
       }
       activePartialBubble = null; // 重置引用，下一句会创建新气泡
